@@ -1,0 +1,69 @@
+{
+  "name": "GameLevel",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Level title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Level description"
+    },
+    "creator_name": {
+      "type": "string",
+      "description": "Creator display name"
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": [
+        "beginner",
+        "intermediate",
+        "expert",
+        "nightmare"
+      ],
+      "default": "beginner"
+    },
+    "grid_data": {
+      "type": "object",
+      "description": "Level grid layout and elements"
+    },
+    "width": {
+      "type": "number",
+      "default": 20
+    },
+    "height": {
+      "type": "number",
+      "default": 15
+    },
+    "play_count": {
+      "type": "number",
+      "default": 0
+    },
+    "rating": {
+      "type": "number",
+      "default": 0
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Level tags"
+    },
+    "is_published": {
+      "type": "boolean",
+      "default": false
+    },
+    "completion_time": {
+      "type": "number",
+      "description": "Average completion time in seconds"
+    }
+  },
+  "required": [
+    "title",
+    "grid_data",
+    "width",
+    "height"
+  ]
+}

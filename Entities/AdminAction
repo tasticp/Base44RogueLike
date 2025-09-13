@@ -1,0 +1,56 @@
+{
+  "name": "AdminAction",
+  "type": "object",
+  "properties": {
+    "session_id": {
+      "type": "string",
+      "description": "ID of the game session"
+    },
+    "action_type": {
+      "type": "string",
+      "enum": [
+        "speak",
+        "transform_object",
+        "spawn_object",
+        "modify_environment",
+        "send_message"
+      ],
+      "description": "Type of admin intervention"
+    },
+    "target_object_id": {
+      "type": "string",
+      "description": "ID of the object being manipulated"
+    },
+    "message": {
+      "type": "string",
+      "description": "Message to send to player"
+    },
+    "transform_to": {
+      "type": "string",
+      "description": "What to transform object into"
+    },
+    "position": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        }
+      }
+    },
+    "parameters": {
+      "type": "object",
+      "description": "Additional parameters for the action"
+    },
+    "admin_name": {
+      "type": "string",
+      "description": "Name of the admin performing action"
+    }
+  },
+  "required": [
+    "session_id",
+    "action_type"
+  ]
+}

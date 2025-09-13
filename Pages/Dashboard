@@ -1,0 +1,312 @@
+import React, { useState, useEffect } from "react";
+import { GameSession, GameLevel, PlayerProfile } from "@/entities/all";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Link } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+import { 
+  Play, 
+  Wrench, 
+  Users, 
+  Trophy, 
+  Clock, 
+  Star,
+  Zap,
+  Crown,
+  Skull,
+  Shield,
+  Target
+} from "lucide-react";
+import { motion } from "framer-motion";
+
+export default function Dashboard() {
+  const [recentSessions, setRecentSessions] = useState([]);
+  const [playerStats, setPlayerStats] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  const loadDashboardData = async () => {
+    setIsLoading(true);
+    try {
+      const sessions = await GameSession.list('-created_date', 5);
+      const profiles = await PlayerProfile.list();
+      
+      setRecentSessions(sessions);
+      setPlayerStats(profiles[0] || null);
+    } catch (error) {
+      console.error("Error loading dashboard:", error);
+    }
+    setIsLoading(false);
+  };
+
+  const gameModes = [
+    {
+      title: "Easy Mode",
+      subtitle: "Hero is Dead",
+      description: "Perfect time to set traps and prepare the dungeon",
+      icon: Shield,
+      color: "from-green-500 to-emerald-600",
+      glowColor: "rgba(34, 197, 94, 0.3)",
+      difficulty: "Beginner"
+    },
+    {
+      title: "Hard Mode", 
+      subtitle: "Hero is Active",
+      description: "Stay hidden while managing dungeon tasks",
+      icon: Skull,
+      color: "from-red-500 to-rose-600", 
+      glowColor: "rgba(239, 68, 68, 0.3)",
+      difficulty: "Expert"
+    },
+    {
+      title: "Nightmare Mode",
+      subtitle: "Multiple Heroes",
+      description: "Ultimate challenge with multiple active heroes",
+      icon: Crown,
+      color: "from-purple-500 to-violet-600",
+      glowColor: "rgba(147, 51, 234, 0.3)",
+      difficulty: "Master"
+    }
+  ];
+
+  const npcRoles = [
+    { name: "Trap Setter", icon: Target, color: "text-orange-400" },
+    { name: "Healer", icon: Shield, color: "text-green-400" },
+    { name: "Store Keeper", icon: Trophy, color: "text-blue-400" },
+    { name: "Monster Summoner", icon: Skull, color: "text-purple-400" }
+  ];
+
+  return (
+    <div className="min-h-screen p-6" style={{ background: 'linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%)' }}>
+      <div className="max-w-7xl mx-auto">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4"
+        >
+          <div>
+            <h1 className="text-4xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-orange-400">
+              Welcome, Dungeon Keeper
+            </h1>
+            <p className="text-xl" style={{ color: 'var(--text-secondary)' }}>
+              The shadow realm awaits your expertise
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Link to={createPageUrl("GameModes")}>
+              <Button className="bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white shadow-lg hover:shadow-red-500/25">
+                <Play className="w-4 h-4 mr-2" />
+                Start Playing
+              </Button>
+            </Link>
+          </div>
+        </motion.div>
+
+        <div className="grid lg:grid-cols-3 gap-6 mb-8">
+          {gameModes.map((mode, index) => (
+            <motion.div
+              key={mode.title}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+            >
+              <Card className="overflow-hidden hover:shadow-2xl transition-all duration-300 border-0 group cursor-pointer"
+                    style={{ backgroundColor: 'var(--bg-card)' }}>
+                <CardContent className="p-6">
+                  <div className={`w-full h-32 bg-gradient-to-br ${mode.color} rounded-lg mb-4 flex items-center justify-center relative overflow-hidden`}>
+                    <mode.icon className="w-12 h-12 text-white z-10" />
+                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors duration-300" />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-start">
+                      <h3 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
+                        {mode.title}
+                      </h3>
+                      <Badge variant="outline" className="text-xs">
+                        {mode.difficulty}
+                      </Badge>
+                    </div>
+                    <p className="font-medium" style={{ color: 'var(--accent-primary)' }}>
+                      {mode.subtitle}
+                    </p>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                      {mode.description}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+
+        <div className="grid lg:grid-cols-4 gap-6 mb-8">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Card style={{ backgroundColor: 'var(--bg-card)' }} className="border-0">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                  <Trophy className="w-5 h-5" style={{ color: 'var(--accent-secondary)' }} />
+                  Player Stats
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex justify-between">
+                  <span style={{ color: 'var(--text-secondary)' }}>Level</span>
+                  <span className="font-bold" style={{ color: 'var(--accent-primary)' }}>
+                    {playerStats?.level || 1}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span style={{ color: 'var(--text-secondary)' }}>Total Score</span>
+                  <span className="font-bold" style={{ color: 'var(--accent-secondary)' }}>
+                    {playerStats?.total_score || 0}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span style={{ color: 'var(--text-secondary)' }}>Levels Completed</span>
+                  <span className="font-bold">{playerStats?.levels_completed || 0}</span>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3 }}
+            className="lg:col-span-3"
+          >
+            <Card style={{ backgroundColor: 'var(--bg-card)' }} className="border-0">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                  <Zap className="w-5 h-5" style={{ color: 'var(--accent-primary)' }} />
+                  Available NPC Roles
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {npcRoles.map((role, index) => (
+                    <motion.div
+                      key={role.name}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4 + index * 0.1 }}
+                      className="text-center p-4 rounded-lg hover:bg-black/20 transition-colors duration-300 cursor-pointer"
+                    >
+                      <role.icon className={`w-8 h-8 mx-auto mb-2 ${role.color}`} />
+                      <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                        {role.name}
+                      </p>
+                    </motion.div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        <div className="grid lg:grid-cols-2 gap-6">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <Card style={{ backgroundColor: 'var(--bg-card)' }} className="border-0">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between" style={{ color: 'var(--text-primary)' }}>
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-5 h-5" style={{ color: 'var(--accent-primary)' }} />
+                    Recent Sessions
+                  </div>
+                  <Link to={createPageUrl("GameModes")}>
+                    <Button variant="outline" size="sm">
+                      View All
+                    </Button>
+                  </Link>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {recentSessions.length > 0 ? (
+                  <div className="space-y-3">
+                    {recentSessions.map((session, index) => (
+                      <motion.div
+                        key={session.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.5 + index * 0.1 }}
+                        className="flex justify-between items-center p-3 rounded-lg"
+                        style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
+                      >
+                        <div>
+                          <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
+                            {session.game_mode?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          </p>
+                          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                            {session.npc_role?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          </p>
+                        </div>
+                        <Badge variant="outline">
+                          {session.status}
+                        </Badge>
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Play className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--text-secondary)' }} />
+                    <p style={{ color: 'var(--text-secondary)' }}>No recent sessions</p>
+                    <p className="text-sm mt-2" style={{ color: 'var(--text-secondary)' }}>
+                      Start your first dungeon management session!
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.5 }}
+          >
+            <Card style={{ backgroundColor: 'var(--bg-card)' }} className="border-0">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                  <Star className="w-5 h-5" style={{ color: 'var(--accent-secondary)' }} />
+                  Quick Actions
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Link to={createPageUrl("LevelCreator")} className="block">
+                  <Button variant="outline" className="w-full justify-start h-12 hover:bg-white/10">
+                    <Wrench className="w-5 h-5 mr-3" />
+                    Create New Level
+                  </Button>
+                </Link>
+                <Link to={createPageUrl("CommunityLevels")} className="block">
+                  <Button variant="outline" className="w-full justify-start h-12 hover:bg-white/10">
+                    <Users className="w-5 h-5 mr-3" />
+                    Browse Community Levels
+                  </Button>
+                </Link>
+                <Link to={createPageUrl("Profile")} className="block">
+                  <Button variant="outline" className="w-full justify-start h-12 hover:bg-white/10">
+                    <Trophy className="w-5 h-5 mr-3" />
+                    View Profile & Stats
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+      </div>
+    </div>
+  );
+}

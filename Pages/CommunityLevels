@@ -1,0 +1,309 @@
+
+import React, { useState, useEffect, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { GameLevel } from "@/entities/all";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+import { motion } from "framer-motion";
+import {
+  ArrowLeft,
+  Search,
+  Filter,
+  Play,
+  Star,
+  Eye,
+  Calendar,
+  User,
+  Trophy,
+  Clock
+} from "lucide-react";
+import { format } from "date-fns";
+
+export default function CommunityLevels() {
+  const navigate = useNavigate();
+  const [levels, setLevels] = useState([]);
+  const [filteredLevels, setFilteredLevels] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [difficultyFilter, setDifficultyFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("newest");
+
+  useEffect(() => {
+    loadLevels();
+  }, []);
+
+  const loadLevels = async () => {
+    setIsLoading(true);
+    try {
+      const data = await GameLevel.list('-created_date');
+      setLevels(data);
+    } catch (error) {
+      console.error("Error loading levels:", error);
+    }
+    setIsLoading(false);
+  };
+
+  const filterAndSortLevels = useCallback(() => {
+    let filtered = levels.filter(level => {
+      const matchesSearch = (level.title && level.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                           (level.description && level.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                           (level.creator_name && level.creator_name.toLowerCase().includes(searchQuery.toLowerCase()));
+      
+      const matchesDifficulty = difficultyFilter === "all" || level.difficulty === difficultyFilter;
+      
+      return matchesSearch && matchesDifficulty;
+    });
+
+    // Sort levels
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case "newest":
+          return new Date(b.created_date) - new Date(a.created_date);
+        case "popular":
+          return (b.play_count || 0) - (a.play_count || 0);
+        case "rating":
+          return (b.rating || 0) - (a.rating || 0);
+        case "title":
+          return a.title.localeCompare(b.title);
+        default:
+          return 0;
+      }
+    });
+
+    setFilteredLevels(filtered);
+  }, [levels, searchQuery, difficultyFilter, sortBy]);
+
+  useEffect(() => {
+    filterAndSortLevels();
+  }, [filterAndSortLevels]);
+
+  const getDifficultyColor = (difficulty) => {
+    const colors = {
+      beginner: "bg-green-100 text-green-800 border-green-200",
+      intermediate: "bg-yellow-100 text-yellow-800 border-yellow-200", 
+      expert: "bg-orange-100 text-orange-800 border-orange-200",
+      nightmare: "bg-red-100 text-red-800 border-red-200"
+    };
+    return colors[difficulty] || colors.beginner;
+  };
+
+  const playLevel = (levelId) => {
+    navigate(createPageUrl(`GameModes?level=${levelId}`));
+  };
+
+  return (
+    <div className="min-h-screen p-6" style={{ background: 'linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%)' }}>
+      <div className="max-w-7xl mx-auto">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between mb-8"
+        >
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigate(createPageUrl("Dashboard"))}
+              className="hover:bg-white/10"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
+                Community Dungeons
+              </h1>
+              <p className="text-xl" style={{ color: 'var(--text-secondary)' }}>
+                Explore levels created by fellow dungeon keepers
+              </p>
+            </div>
+          </div>
+          
+          <Button
+            onClick={() => navigate(createPageUrl("LevelCreator"))}
+            className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white shadow-lg"
+          >
+            Create Level
+          </Button>
+        </motion.div>
+
+        {/* Filters */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="mb-6"
+        >
+          <Card style={{ backgroundColor: 'var(--bg-card)' }} className="border-0">
+            <CardContent className="p-4">
+              <div className="flex flex-col md:flex-row gap-4 items-center">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4" 
+                         style={{ color: 'var(--text-secondary)' }} />
+                  <Input
+                    placeholder="Search levels, creators, or descriptions..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 bg-white/5 border-white/10"
+                  />
+                </div>
+                
+                <Select value={difficultyFilter} onValueChange={setDifficultyFilter}>
+                  <SelectTrigger className="w-40 bg-white/5 border-white/10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Difficulties</SelectItem>
+                    <SelectItem value="beginner">Beginner</SelectItem>
+                    <SelectItem value="intermediate">Intermediate</SelectItem>
+                    <SelectItem value="expert">Expert</SelectItem>
+                    <SelectItem value="nightmare">Nightmare</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-40 bg-white/5 border-white/10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Newest First</SelectItem>
+                    <SelectItem value="popular">Most Played</SelectItem>
+                    <SelectItem value="rating">Highest Rated</SelectItem>
+                    <SelectItem value="title">Alphabetical</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Levels Grid */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {isLoading ? (
+            Array(6).fill(0).map((_, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: i * 0.1 }}
+              >
+                <Card style={{ backgroundColor: 'var(--bg-card)' }} className="border-0 animate-pulse">
+                  <div className="h-32 bg-white/10 rounded-t-lg" />
+                  <CardContent className="p-4">
+                    <div className="h-4 bg-white/10 rounded mb-2" />
+                    <div className="h-3 bg-white/10 rounded mb-4" />
+                    <div className="flex justify-between">
+                      <div className="h-6 w-16 bg-white/10 rounded" />
+                      <div className="h-8 w-20 bg-white/10 rounded" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))
+          ) : filteredLevels.length > 0 ? (
+            filteredLevels.map((level, index) => (
+              <motion.div
+                key={level.id}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <Card 
+                  style={{ backgroundColor: 'var(--bg-card)' }} 
+                  className="border-0 hover:shadow-2xl transition-all duration-300 group cursor-pointer"
+                  onClick={() => playLevel(level.id)}
+                >
+                  {/* Level Preview */}
+                  <div 
+                    className="h-32 bg-gradient-to-br from-gray-800 to-gray-900 relative overflow-hidden rounded-t-lg"
+                  >
+                    <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors duration-300" />
+                    <div className="absolute top-2 left-2">
+                      <Badge className={getDifficultyColor(level.difficulty)} variant="secondary">
+                        {level.difficulty}
+                      </Badge>
+                    </div>
+                    <div className="absolute bottom-2 right-2 flex items-center gap-1 text-white text-xs">
+                      <Eye className="w-3 h-3" />
+                      {level.play_count || 0}
+                    </div>
+                  </div>
+                  
+                  <CardContent className="p-4">
+                    <div className="mb-3">
+                      <h3 className="text-lg font-bold mb-1" style={{ color: 'var(--text-primary)' }}>
+                        {level.title}
+                      </h3>
+                      <p className="text-sm line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
+                        {level.description || "No description available"}
+                      </p>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 mb-3 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                      <User className="w-3 h-3" />
+                      <span>{level.creator_name}</span>
+                      <Calendar className="w-3 h-3 ml-2" />
+                      <span>{format(new Date(level.created_date), "MMM d")}</span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-3">
+                        {level.rating > 0 && (
+                          <div className="flex items-center gap-1">
+                            <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                            <span className="text-xs">{level.rating.toFixed(1)}</span>
+                          </div>
+                        )}
+                        {level.completion_time && (
+                          <div className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            <span className="text-xs">{Math.round(level.completion_time / 60)}m</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <Button 
+                        size="sm" 
+                        className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          playLevel(level.id);
+                        }}
+                      >
+                        <Play className="w-3 h-3 mr-1" />
+                        Play
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))
+          ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="col-span-full text-center py-12"
+            >
+              <Trophy className="w-16 h-16 mx-auto mb-4" style={{ color: 'var(--text-secondary)' }} />
+              <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
+                No levels found
+              </h3>
+              <p style={{ color: 'var(--text-secondary)' }}>
+                Try adjusting your search or create the first level!
+              </p>
+              <Button
+                onClick={() => navigate(createPageUrl("LevelCreator"))}
+                className="mt-4 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white"
+              >
+                Create Level
+              </Button>
+            </motion.div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

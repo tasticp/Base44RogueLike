@@ -1,0 +1,389 @@
+import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PlayerProfile, GameSession, GameLevel } from "@/entities/all";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+import { motion } from "framer-motion";
+import {
+  ArrowLeft,
+  Save,
+  User,
+  Trophy,
+  Star,
+  Clock,
+  Target,
+  Crown,
+  Zap,
+  Award,
+  TrendingUp
+} from "lucide-react";
+
+export default function Profile() {
+  const navigate = useNavigate();
+  const [profile, setProfile] = useState({
+    display_name: "",
+    npc_avatar: "shadow_imp",
+    level: 1,
+    experience: 0,
+    unlocked_roles: ["trap_setter"],
+    unlocked_abilities: [],
+    total_score: 0,
+    levels_completed: 0,
+    levels_created: 0,
+    favorite_role: "trap_setter"
+  });
+  
+  const [recentSessions, setRecentSessions] = useState([]);
+  const [createdLevels, setCreatedLevels] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const npcAvatars = [
+    { id: "shadow_imp", name: "Shadow Imp", description: "Swift and sneaky" },
+    { id: "crystal_sprite", name: "Crystal Sprite", description: "Master of illusions" },
+    { id: "bone_keeper", name: "Bone Keeper", description: "Guardian of the dead" },
+    { id: "moss_guardian", name: "Moss Guardian", description: "Nature's protector" },
+    { id: "void_wisp", name: "Void Wisp", description: "Ethereal wanderer" }
+  ];
+
+  const roles = [
+    { id: "trap_setter", name: "Trap Setter", icon: Target },
+    { id: "healer", name: "Healer", icon: Star },
+    { id: "store_keeper", name: "Store Keeper", icon: Trophy },
+    { id: "monster_summoner", name: "Monster Summoner", icon: Crown },
+    { id: "boss_reviver", name: "Boss Reviver", icon: Zap }
+  ];
+
+  useEffect(() => {
+    loadProfileData();
+  }, []);
+
+  const loadProfileData = async () => {
+    setIsLoading(true);
+    try {
+      const profiles = await PlayerProfile.list();
+      const sessions = await GameSession.list('-created_date', 10);
+      const levels = await GameLevel.list('-created_date', 5);
+      
+      if (profiles.length > 0) {
+        setProfile(profiles[0]);
+      }
+      setRecentSessions(sessions);
+      setCreatedLevels(levels);
+    } catch (error) {
+      console.error("Error loading profile:", error);
+    }
+    setIsLoading(false);
+  };
+
+  const saveProfile = async () => {
+    setIsSaving(true);
+    try {
+      const profiles = await PlayerProfile.list();
+      if (profiles.length > 0) {
+        await PlayerProfile.update(profiles[0].id, profile);
+      } else {
+        await PlayerProfile.create(profile);
+      }
+    } catch (error) {
+      console.error("Error saving profile:", error);
+    }
+    setIsSaving(false);
+  };
+
+  const getExperienceForNextLevel = (currentLevel) => {
+    return currentLevel * 1000;
+  };
+
+  const getProgressPercentage = () => {
+    const nextLevelExp = getExperienceForNextLevel(profile.level);
+    const currentLevelExp = (profile.level - 1) * 1000;
+    const progressExp = profile.experience - currentLevelExp;
+    const neededExp = nextLevelExp - currentLevelExp;
+    return Math.min(100, (progressExp / neededExp) * 100);
+  };
+
+  const achievements = [
+    { title: "First Steps", description: "Complete your first session", unlocked: profile.levels_completed > 0 },
+    { title: "Trap Master", description: "Complete 10 sessions as Trap Setter", unlocked: profile.levels_completed >= 10 },
+    { title: "Level Creator", description: "Create your first level", unlocked: profile.levels_created > 0 },
+    { title: "Community Favorite", description: "Have a level played 100 times", unlocked: false },
+  ];
+
+  return (
+    <div className="min-h-screen p-6" style={{ background: 'linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%)' }}>
+      <div className="max-w-6xl mx-auto">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between mb-8"
+        >
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigate(createPageUrl("Dashboard"))}
+              className="hover:bg-white/10"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+                Keeper Profile
+              </h1>
+              <p className="text-xl" style={{ color: 'var(--text-secondary)' }}>
+                Manage your dungeon keeper identity
+              </p>
+            </div>
+          </div>
+          
+          <Button
+            onClick={saveProfile}
+            disabled={isSaving}
+            className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg"
+          >
+            {isSaving ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4 mr-2" />
+                Save Profile
+              </>
+            )}
+          </Button>
+        </motion.div>
+
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Profile Settings */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 }}
+            className="space-y-6"
+          >
+            <Card style={{ backgroundColor: 'var(--bg-card)' }} className="border-0">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                  <User className="w-5 h-5" />
+                  Profile Settings
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label style={{ color: 'var(--text-primary)' }}>Display Name</Label>
+                  <Input
+                    value={profile.display_name}
+                    onChange={(e) => setProfile({...profile, display_name: e.target.value})}
+                    placeholder="Enter your keeper name"
+                    className="bg-white/5 border-white/10"
+                  />
+                </div>
+                
+                <div>
+                  <Label style={{ color: 'var(--text-primary)' }}>NPC Avatar</Label>
+                  <Select
+                    value={profile.npc_avatar}
+                    onValueChange={(value) => setProfile({...profile, npc_avatar: value})}
+                  >
+                    <SelectTrigger className="bg-white/5 border-white/10">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {npcAvatars.map((avatar) => (
+                        <SelectItem key={avatar.id} value={avatar.id}>
+                          {avatar.name} - {avatar.description}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label style={{ color: 'var(--text-primary)' }}>Favorite Role</Label>
+                  <Select
+                    value={profile.favorite_role}
+                    onValueChange={(value) => setProfile({...profile, favorite_role: value})}
+                  >
+                    <SelectTrigger className="bg-white/5 border-white/10">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roles.map((role) => (
+                        <SelectItem key={role.id} value={role.id}>
+                          {role.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Stats Card */}
+            <Card style={{ backgroundColor: 'var(--bg-card)' }} className="border-0">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                  <Trophy className="w-5 h-5" />
+                  Statistics
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 text-center">
+                  <div>
+                    <p className="text-2xl font-bold" style={{ color: 'var(--accent-primary)' }}>
+                      {profile.level}
+                    </p>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Level</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold" style={{ color: 'var(--accent-secondary)' }}>
+                      {profile.total_score}
+                    </p>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Total Score</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
+                      {profile.levels_completed}
+                    </p>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Completed</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
+                      {profile.levels_created}
+                    </p>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Created</p>
+                  </div>
+                </div>
+                
+                {/* Experience Bar */}
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span style={{ color: 'var(--text-secondary)' }}>Experience</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>
+                      {profile.experience} / {getExperienceForNextLevel(profile.level)}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-700 rounded-full h-2">
+                    <div 
+                      className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${getProgressPercentage()}%` }}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Recent Activity & Achievements */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+            className="lg:col-span-2 space-y-6"
+          >
+            {/* Achievements */}
+            <Card style={{ backgroundColor: 'var(--bg-card)' }} className="border-0">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                  <Award className="w-5 h-5" />
+                  Achievements
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-2 gap-4">
+                  {achievements.map((achievement, index) => (
+                    <motion.div
+                      key={achievement.title}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 + index * 0.1 }}
+                      className={`p-4 rounded-lg ${
+                        achievement.unlocked 
+                          ? 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30' 
+                          : 'bg-white/5'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                          achievement.unlocked 
+                            ? 'bg-yellow-500' 
+                            : 'bg-gray-600'
+                        }`}>
+                          <Trophy className="w-4 h-4 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
+                            {achievement.title}
+                          </h4>
+                          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                            {achievement.description}
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Recent Sessions */}
+            <Card style={{ backgroundColor: 'var(--bg-card)' }} className="border-0">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                  <Clock className="w-5 h-5" />
+                  Recent Activity
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {recentSessions.length > 0 ? (
+                  <div className="space-y-3">
+                    {recentSessions.slice(0, 5).map((session, index) => (
+                      <motion.div
+                        key={session.id}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.4 + index * 0.1 }}
+                        className="flex justify-between items-center p-3 rounded-lg"
+                        style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
+                      >
+                        <div>
+                          <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
+                            {session.game_mode?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          </p>
+                          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                            {session.npc_role?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <Badge variant="outline">
+                            {session.status}
+                          </Badge>
+                          <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                            Score: {session.current_score}
+                          </p>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <TrendingUp className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--text-secondary)' }} />
+                    <p style={{ color: 'var(--text-secondary)' }}>No recent activity</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,99 @@
+{
+  "name": "PlayerProfile",
+  "type": "object",
+  "properties": {
+    "display_name": {
+      "type": "string",
+      "description": "Player's display name"
+    },
+    "npc_avatar": {
+      "type": "string",
+      "enum": [
+        "shadow_imp",
+        "crystal_sprite",
+        "bone_keeper",
+        "moss_guardian",
+        "void_wisp"
+      ],
+      "default": "shadow_imp"
+    },
+    "level": {
+      "type": "number",
+      "default": 1
+    },
+    "experience": {
+      "type": "number",
+      "default": 0
+    },
+    "unlocked_roles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [
+        "trap_setter"
+      ]
+    },
+    "unlocked_abilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "total_score": {
+      "type": "number",
+      "default": 0
+    },
+    "levels_completed": {
+      "type": "number",
+      "default": 0
+    },
+    "levels_created": {
+      "type": "number",
+      "default": 0
+    },
+    "favorite_role": {
+      "type": "string",
+      "enum": [
+        "trap_setter",
+        "healer",
+        "store_keeper",
+        "monster_summoner",
+        "boss_reviver"
+      ],
+      "default": "trap_setter"
+    },
+    "key_bindings": {
+      "type": "object",
+      "properties": {
+        "up": {
+          "type": "string",
+          "default": "w"
+        },
+        "down": {
+          "type": "string",
+          "default": "s"
+        },
+        "left": {
+          "type": "string",
+          "default": "a"
+        },
+        "right": {
+          "type": "string",
+          "default": "d"
+        },
+        "interact": {
+          "type": "string",
+          "default": "e"
+        },
+        "jump": {
+          "type": "string",
+          "default": " "
+        }
+      }
+    }
+  },
+  "required": [
+    "display_name"
+  ]
+}

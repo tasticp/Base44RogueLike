@@ -1,0 +1,344 @@
+
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { GameLevel } from "@/entities/all";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+import { motion } from "framer-motion";
+import {
+  ArrowLeft,
+  Save,
+  Eye,
+  Grid,
+  Trash2,
+  RotateCcw,
+  Play,
+  Target,
+  Crown,
+  Skull,
+  Gem,
+  DoorOpen, // Changed from Door to DoorOpen
+  Shield
+} from "lucide-react";
+
+export default function LevelCreator() {
+  const navigate = useNavigate();
+  const [levelData, setLevelData] = useState({
+    title: "",
+    description: "",
+    difficulty: "beginner",
+    width: 20,
+    height: 15,
+    tags: [],
+    grid_data: {}
+  });
+
+  const [selectedTool, setSelectedTool] = useState("wall");
+  const [grid, setGrid] = useState(() => {
+    // Initialize empty grid
+    const newGrid = {};
+    for (let y = 0; y < levelData.height; y++) {
+      for (let x = 0; x < levelData.width; x++) {
+        newGrid[`${x}-${y}`] = { type: "empty" };
+      }
+    }
+    return newGrid;
+  });
+
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const tools = [
+    { id: "empty", name: "Empty", icon: Grid, color: "#2a2a2a" },
+    { id: "wall", name: "Wall", icon: Shield, color: "#4a5568" },
+    { id: "trap", name: "Trap", icon: Target, color: "#e53e3e" },
+    { id: "npc", name: "NPC", icon: Crown, color: "#38b2ac" },
+    { id: "boss", name: "Boss", icon: Skull, color: "#9f7aea" },
+    { id: "treasure", name: "Treasure", icon: Gem, color: "#f6ad55" },
+    { id: "door", name: "Door", icon: DoorOpen, color: "#4299e1" }, // Changed icon to DoorOpen
+    { id: "spawn", name: "Hero Spawn", icon: Play, color: "#48bb78" }
+  ];
+
+  const handleCellClick = (x, y) => {
+    const key = `${x}-${y}`;
+    setGrid(prev => ({
+      ...prev,
+      [key]: { type: selectedTool }
+    }));
+  };
+
+  const clearGrid = () => {
+    const newGrid = {};
+    for (let y = 0; y < levelData.height; y++) {
+      for (let x = 0; x < levelData.width; x++) {
+        newGrid[`${x}-${y}`] = { type: "empty" };
+      }
+    }
+    setGrid(newGrid);
+  };
+
+  const saveLevel = async () => {
+    if (!levelData.title.trim()) {
+      alert("Please enter a level title");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await GameLevel.create({
+        ...levelData,
+        grid_data: grid,
+        creator_name: "Shadow Imp", // This would come from user profile
+        is_published: true
+      });
+      
+      navigate(createPageUrl("CommunityLevels"));
+    } catch (error) {
+      console.error("Error saving level:", error);
+    }
+    setIsSaving(false);
+  };
+
+  const getCellColor = (cellType) => {
+    const tool = tools.find(t => t.id === cellType);
+    return tool?.color || "#2a2a2a";
+  };
+
+  const getCellIcon = (cellType) => {
+    const tool = tools.find(t => t.id === cellType);
+    return tool?.icon || Grid;
+  };
+
+  return (
+    <div className="min-h-screen p-6" style={{ background: 'linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%)' }}>
+      <div className="max-w-7xl mx-auto">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between mb-8"
+        >
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigate(createPageUrl("Dashboard"))}
+              className="hover:bg-white/10"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-yellow-400">
+                Dungeon Architect
+              </h1>
+              <p className="text-xl" style={{ color: 'var(--text-secondary)' }}>
+                Design your perfect dungeon layout
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setIsPreviewMode(!isPreviewMode)}
+              className="hover:bg-white/10"
+            >
+              <Eye className="w-4 h-4 mr-2" />
+              {isPreviewMode ? "Edit" : "Preview"}
+            </Button>
+            <Button
+              onClick={saveLevel}
+              disabled={isSaving}
+              className="bg-gradient-to-r from-orange-500 to-yellow-600 hover:from-orange-600 hover:to-yellow-700 text-white shadow-lg"
+            >
+              {isSaving ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Level
+                </>
+              )}
+            </Button>
+          </div>
+        </motion.div>
+
+        <div className="grid lg:grid-cols-4 gap-6">
+          {/* Level Settings Panel */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 }}
+            className="space-y-6"
+          >
+            <Card style={{ backgroundColor: 'var(--bg-card)' }} className="border-0">
+              <CardHeader>
+                <CardTitle style={{ color: 'var(--text-primary)' }}>
+                  Level Settings
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label style={{ color: 'var(--text-primary)' }}>Level Title</Label>
+                  <Input
+                    value={levelData.title}
+                    onChange={(e) => setLevelData({...levelData, title: e.target.value})}
+                    placeholder="My Awesome Dungeon"
+                    className="bg-white/5 border-white/10"
+                  />
+                </div>
+                
+                <div>
+                  <Label style={{ color: 'var(--text-primary)' }}>Description</Label>
+                  <Textarea
+                    value={levelData.description}
+                    onChange={(e) => setLevelData({...levelData, description: e.target.value})}
+                    placeholder="Describe your level..."
+                    className="bg-white/5 border-white/10 h-20"
+                  />
+                </div>
+                
+                <div>
+                  <Label style={{ color: 'var(--text-primary)' }}>Difficulty</Label>
+                  <Select
+                    value={levelData.difficulty}
+                    onValueChange={(value) => setLevelData({...levelData, difficulty: value})}
+                  >
+                    <SelectTrigger className="bg-white/5 border-white/10">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="beginner">Beginner</SelectItem>
+                      <SelectItem value="intermediate">Intermediate</SelectItem>
+                      <SelectItem value="expert">Expert</SelectItem>
+                      <SelectItem value="nightmare">Nightmare</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Tools Panel */}
+            <Card style={{ backgroundColor: 'var(--bg-card)' }} className="border-0">
+              <CardHeader>
+                <CardTitle style={{ color: 'var(--text-primary)' }}>
+                  Building Tools
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-2">
+                  {tools.map((tool) => (
+                    <Button
+                      key={tool.id}
+                      variant={selectedTool === tool.id ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSelectedTool(tool.id)}
+                      className={`h-12 flex flex-col items-center gap-1 ${
+                        selectedTool === tool.id 
+                          ? 'bg-orange-500 hover:bg-orange-600' 
+                          : 'hover:bg-white/10'
+                      }`}
+                    >
+                      <tool.icon className="w-4 h-4" />
+                      <span className="text-xs">{tool.name}</span>
+                    </Button>
+                  ))}
+                </div>
+                
+                <div className="mt-4 space-y-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearGrid}
+                    className="w-full hover:bg-white/10"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Clear Grid
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Grid Editor */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+            className="lg:col-span-3"
+          >
+            <Card style={{ backgroundColor: 'var(--bg-card)' }} className="border-0">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                  <Grid className="w-5 h-5" />
+                  Dungeon Layout
+                  <span className="text-sm font-normal" style={{ color: 'var(--text-secondary)' }}>
+                    ({levelData.width} × {levelData.height})
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-auto max-h-96">
+                  <div 
+                    className="grid gap-1 p-4 rounded-lg"
+                    style={{ 
+                      gridTemplateColumns: `repeat(${levelData.width}, 1fr)`,
+                      backgroundColor: 'rgba(0,0,0,0.3)'
+                    }}
+                  >
+                    {Array.from({ length: levelData.height }).map((_, y) =>
+                      Array.from({ length: levelData.width }).map((_, x) => {
+                        const key = `${x}-${y}`;
+                        const cell = grid[key];
+                        const CellIcon = getCellIcon(cell?.type);
+                        
+                        return (
+                          <div
+                            key={key}
+                            className="w-6 h-6 border border-gray-600 cursor-pointer hover:opacity-80 transition-opacity flex items-center justify-center"
+                            style={{ backgroundColor: getCellColor(cell?.type) }}
+                            onClick={() => handleCellClick(x, y)}
+                          >
+                            {cell?.type !== "empty" && cell?.type !== "wall" && (
+                              <CellIcon className="w-3 h-3 text-white" />
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+                
+                <div className="mt-4 p-4 rounded-lg" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
+                  <h4 className="font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
+                    Legend:
+                  </h4>
+                  <div className="flex flex-wrap gap-4 text-sm">
+                    {tools.slice(1).map((tool) => (
+                      <div key={tool.id} className="flex items-center gap-2">
+                        <div 
+                          className="w-4 h-4 border border-gray-500 flex items-center justify-center"
+                          style={{ backgroundColor: tool.color }}
+                        >
+                          {tool.id !== "wall" && <tool.icon className="w-2 h-2 text-white" />}
+                        </div>
+                        <span style={{ color: 'var(--text-secondary)' }}>{tool.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+      </div>
+    </div>
+  );
+}

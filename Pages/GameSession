@@ -1,0 +1,763 @@
+
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { GameSession, GameObject, AdminAction, PlayerProfile } from "@/entities/all";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  ArrowLeft,
+  Pause,
+  Play,
+  Volume2,
+  VolumeX,
+  Eye,
+  EyeOff,
+  Target,
+  Heart,
+  Zap,
+  Crown,
+  Skull,
+  Shield,
+  Gem,
+  DoorOpen,
+  MessageSquare,
+  AlertTriangle,
+  Move,
+  Youtube
+} from "lucide-react";
+
+const CELL_SIZE = 32; // pixels
+const GAME_WIDTH = 20; // grid cells
+const GAME_HEIGHT = 15; // grid cells
+const PLAYER_SPEED = 0.1; // cells per frame
+
+export default function GameSessionPage() {
+  const navigate = useNavigate();
+  const urlParams = new URLSearchParams(window.location.search);
+  const sessionId = urlParams.get('id');
+
+  const [gameState, setGameState] = useState({
+    phase: "intro", // intro, playing, paused, completed, failed
+    session: null,
+    objects: [],
+    playerPosition: { x: 1, y: 1 },
+    heroPosition: { x: 10, y: 8 },
+    heroActive: false,
+    score: 0,
+    timeElapsed: 0,
+    tasksCompleted: [],
+    currentTask: null,
+    gameMessages: [],
+    adminMessages: []
+  });
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [showHero, setShowHero] = useState(true);
+
+  // New states and refs
+  const [keyBindings, setKeyBindings] = useState({ up: 'w', down: 's', left: 'a', right: 'd', interact: 'e', jump: ' ' });
+  const [camera, setCamera] = useState({ x: 0, y: 0 });
+  const [isMobile, setIsMobile] = useState(false);
+
+  const keysPressed = useRef(new Set()).current;
+  const gameLoopRef = useRef(null); // Used for requestAnimationFrame ID
+  const lastTickTimeRef = useRef(0); // For 1-second game logic updates (time, hero, tasks)
+  const messageTimeoutRef = useRef(null);
+  const gameContainerRef = useRef(null); // Reference to the main game viewport
+
+  const gameAssets = {
+    trap: { icon: Target, color: "#e53e3e", name: "Trap" },
+    npc: { icon: Crown, color: "#38b2ac", name: "NPC" },
+    boss: { icon: Skull, color: "#9f7aea", name: "Boss" },
+    treasure: { icon: Gem, color: "#f6ad55", name: "Treasure" },
+    wall: { icon: Shield, color: "#4a5568", name: "Wall" },
+    door: { icon: DoorOpen, color: "#4299e1", name: "Door" },
+    crystal: { icon: Zap, color: "#00d4ff", name: "Crystal" },
+    torch: { icon: Volume2, color: "#ff6b35", name: "Torch" },
+    statue: { icon: Crown, color: "#8b7355", name: "Statue" },
+    altar: { icon: Heart, color: "#ff69b4", name: "Altar" },
+    portal: { icon: Eye, color: "#9d4edd", name: "Portal" }
+  };
+
+  const loadProfile = useCallback(async () => {
+    try {
+      const profiles = await PlayerProfile.list();
+      if (profiles.length > 0 && profiles[0].key_bindings) {
+        setKeyBindings(profiles[0].key_bindings);
+      }
+    } catch (error) {
+      console.error("Failed to load player profile:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadProfile();
+    setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+  }, [loadProfile]);
+
+  // Generic message adder
+  const addGameMessage = useCallback((message, type = "system", objectId = null) => {
+    const newMessage = {
+      id: Date.now(),
+      text: message,
+      type,
+      timestamp: new Date(),
+      objectId
+    };
+
+    setGameState(prev => {
+      const newMessages = [...prev.gameMessages.slice(-4), newMessage]; // Keep last 5 messages
+      return {
+        ...prev,
+        gameMessages: newMessages
+      };
+    });
+
+    if (messageTimeoutRef.current) {
+      clearTimeout(messageTimeoutRef.current);
+    }
+
+    messageTimeoutRef.current = setTimeout(() => {
+      setGameState(prev => ({
+        ...prev,
+        gameMessages: prev.gameMessages.filter(msg => msg.id !== newMessage.id)
+      }));
+    }, 5000);
+  }, []);
+
+  const generateTask = useCallback((role) => {
+    const tasks = {
+      trap_setter: [
+        "Activate the broken trap at position (8,6)",
+        "Set a new trap near the treasure room",
+        "Check all trap mechanisms for damage"
+      ],
+      healer: [
+        "Heal the wounded NPC at position (3,4)",
+        "Restore the fallen boss to full health",
+        "Replenish health potions at the altar"
+      ],
+      store_keeper: [
+        "Restock the treasure chest inventory",
+        "Organize valuable items by rarity",
+        "Update price displays for adventurers"
+      ],
+      monster_summoner: [
+        "Summon guardian spirits at key locations",
+        "Awaken dormant creatures in the depths",
+        "Strengthen existing monster patrols"
+      ],
+      boss_reviver: [
+        "Revive the defeated boss at position (15,10)",
+        "Restore boss abilities and powers",
+        "Prepare the boss chamber for combat"
+      ]
+    };
+    const roleTasks = tasks[role] || tasks.trap_setter;
+    return roleTasks[Math.floor(Math.random() * roleTasks.length)];
+  }, []);
+
+  const completeTask = useCallback(() => {
+    const points = Math.floor(Math.random() * 100) + 50;
+    setGameState(prev => ({
+      ...prev,
+      score: prev.score + points,
+      tasksCompleted: [...prev.tasksCompleted, prev.currentTask],
+      currentTask: generateTask(prev.session?.npc_role)
+    }));
+    addGameMessage(`Task completed! +${points} points`, "success");
+  }, [addGameMessage, generateTask]);
+
+  const handleObjectClick = useCallback(async (object) => {
+    if (!object.can_interact && gameState.session?.npc_role !== "healer") {
+      addGameMessage("This object is not interactable.", "system");
+      return;
+    }
+
+    const role = gameState.session?.npc_role;
+    let action = "";
+    let points = 0;
+    let objectUpdated = false;
+
+    switch (role) {
+      case "trap_setter":
+        if (object.object_type === "trap") {
+          action = object.state === "active" ? "Trap reset successfully" : "Trap activated";
+          points = 25;
+          await GameObject.update(object.id, {
+            state: object.state === "active" ? "inactive" : "active"
+          });
+          objectUpdated = true;
+        }
+        break;
+      case "healer":
+        if (object.object_type === "npc" || object.object_type === "boss") {
+          action = "Healing energy flows...";
+          points = 30;
+          await GameObject.update(object.id, {
+            health: Math.min(100, (object.health || 50) + 50),
+            state: "active"
+          });
+          objectUpdated = true;
+        }
+        break;
+      case "store_keeper":
+        if (object.object_type === "treasure") {
+          action = "Inventory restocked";
+          points = 20;
+          objectUpdated = true;
+        }
+        break;
+      default:
+        addGameMessage("You cannot interact with this object with your current role.", "system");
+        return;
+    }
+
+    if (action) {
+      addGameMessage(action, "success");
+      setGameState(prev => ({ ...prev, score: prev.score + points }));
+
+      if (objectUpdated) {
+        try {
+          const updatedObjects = await GameObject.filter({ session_id: sessionId });
+          setGameState(prev => ({ ...prev, objects: updatedObjects }));
+        } catch (error) {
+          console.error("Error refreshing objects:", error);
+        }
+      }
+    }
+  }, [addGameMessage, gameState.session?.npc_role, sessionId]);
+
+  // Forward declaration for handleInteraction
+  const handleInteraction = useCallback(() => {
+    const { x, y } = gameState.playerPosition;
+    const checkPositions = [
+      { x: Math.round(x), y: Math.round(y) },
+      { x: Math.round(x + 1), y: Math.round(y) },
+      { x: Math.round(x - 1), y: Math.round(y) },
+      { x: Math.round(x), y: Math.round(y + 1) },
+      { x: Math.round(x), y: Math.round(y - 1) },
+    ];
+
+    for (const pos of checkPositions) {
+      const object = gameState.objects.find(obj =>
+        obj.position.x === pos.x && obj.position.y === pos.y
+      );
+      if (object) {
+        handleObjectClick(object);
+        return;
+      }
+    }
+    addGameMessage("No interactable object nearby.", "system");
+  }, [gameState.playerPosition, gameState.objects, addGameMessage, handleObjectClick]);
+
+  // Keyboard controls
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const key = e.key.toLowerCase();
+      keysPressed.add(key);
+      if (key === keyBindings.interact) {
+        handleInteraction();
+      }
+    };
+    const handleKeyUp = (e) => {
+      keysPressed.delete(e.key.toLowerCase());
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [keysPressed, keyBindings, handleInteraction]);
+
+  // Main game loop (requestAnimationFrame based)
+  const gameLoop = useCallback(() => {
+    setGameState(prev => {
+      if (prev.phase !== 'playing') {
+        return prev;
+      }
+
+      let { x, y } = prev.playerPosition;
+      // Apply movement based on keysPressed
+      if (keysPressed.has(keyBindings.up)) y -= PLAYER_SPEED;
+      if (keysPressed.has(keyBindings.down)) y += PLAYER_SPEED;
+      if (keysPressed.has(keyBindings.left)) x -= PLAYER_SPEED;
+      if (keysPressed.has(keyBindings.right)) x += PLAYER_SPEED;
+
+      // Boundary checks
+      x = Math.max(0, Math.min(GAME_WIDTH - 1, x));
+      y = Math.max(0, Math.min(GAME_HEIGHT - 1, y));
+
+      const now = performance.now();
+      const oneSecondPassed = (now - lastTickTimeRef.current) >= 1000;
+
+      let newTimeElapsed = prev.timeElapsed;
+      let newHeroPosition = prev.heroPosition;
+
+      if (oneSecondPassed) {
+        newTimeElapsed = prev.timeElapsed + 1;
+
+        // Move hero randomly if active
+        if (prev.heroActive && Math.random() > 0.7) {
+          const directions = [
+            { x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }
+          ];
+          const direction = directions[Math.floor(Math.random() * directions.length)];
+          newHeroPosition = {
+            x: Math.max(0, Math.min(GAME_WIDTH - 1, prev.heroPosition.x + direction.x)),
+            y: Math.max(0, Math.min(GAME_HEIGHT - 1, prev.heroPosition.y + direction.y))
+          };
+        }
+
+        // Check for task completion
+        if (Math.random() > 0.98 && prev.currentTask) {
+          completeTask(); // This triggers its own state update
+        }
+        
+        lastTickTimeRef.current = now; // Reset timer for next 1-second tick
+      }
+
+      return {
+        ...prev,
+        playerPosition: { x, y },
+        timeElapsed: newTimeElapsed,
+        heroPosition: newHeroPosition,
+      };
+    });
+
+    // Request next animation frame if still playing
+    if (gameState.phase === 'playing' && gameLoopRef.current) {
+        gameLoopRef.current = requestAnimationFrame(gameLoop);
+    }
+  }, [keyBindings, completeTask, gameState.phase]);
+
+  // Effect to start/stop the game loop
+  useEffect(() => {
+    if (gameState.phase === 'playing') {
+      lastTickTimeRef.current = performance.now(); // Initialize for the first tick
+      gameLoopRef.current = requestAnimationFrame(gameLoop);
+    } else {
+      if (gameLoopRef.current) cancelAnimationFrame(gameLoopRef.current);
+      gameLoopRef.current = null;
+    }
+    return () => {
+      if (gameLoopRef.current) cancelAnimationFrame(gameLoopRef.current);
+      gameLoopRef.current = null;
+    };
+  }, [gameState.phase, gameLoop]);
+
+  // Camera follow logic
+  useEffect(() => {
+    if (gameContainerRef.current && gameState.phase !== 'paused') { // Don't update camera if paused
+      const { clientWidth, clientHeight } = gameContainerRef.current;
+      // Calculate target position to center the player
+      const targetX = -gameState.playerPosition.x * CELL_SIZE + clientWidth / 2 - CELL_SIZE / 2;
+      const targetY = -gameState.playerPosition.y * CELL_SIZE + clientHeight / 2 - CELL_SIZE / 2;
+
+      setCamera(prev => ({
+        x: prev.x + (targetX - prev.x) * 0.1, // Smooth interpolation
+        y: prev.y + (targetY - prev.y) * 0.1,
+      }));
+    }
+  }, [gameState.playerPosition, gameState.phase]);
+
+  const getObjectName = useCallback((objectId) => {
+    const obj = gameState.objects.find(o => o.id === objectId);
+    return obj ? gameAssets[obj.object_type]?.name || obj.object_type : "Unknown";
+  }, [gameState.objects]);
+
+  const processAdminAction = useCallback(async (action) => {
+    switch (action.action_type) {
+      case "speak":
+        if (action.target_object_id) {
+          addGameMessage(`${getObjectName(action.target_object_id)} says: "${action.message}"`, "admin", action.target_object_id);
+          await GameObject.update(action.target_object_id, {
+            state: "speaking",
+            last_message: action.message
+          });
+        } else {
+          addGameMessage(`Admin: ${action.message}`, "admin");
+        }
+        break;
+
+      case "transform_object":
+        if (action.target_object_id && action.transform_to) {
+          await GameObject.update(action.target_object_id, {
+            object_type: action.transform_to,
+            admin_controlled: true
+          });
+          addGameMessage(`The ${getObjectName(action.target_object_id)} transforms into a ${action.transform_to}!`, "admin");
+          const updatedObjects = await GameObject.filter({ session_id: sessionId });
+          setGameState(prev => ({ ...prev, objects: updatedObjects }));
+        }
+        break;
+
+      case "spawn_object":
+        if (action.position && action.transform_to) {
+          await GameObject.create({
+            session_id: sessionId,
+            object_type: action.transform_to,
+            position: action.position,
+            state: "active",
+            admin_controlled: true
+          });
+          addGameMessage(`A new ${action.transform_to} appears at (${action.position.x},${action.position.y})!`, "admin");
+          const updatedObjects = await GameObject.filter({ session_id: sessionId });
+          setGameState(prev => ({ ...prev, objects: updatedObjects }));
+        }
+        break;
+
+      case "send_message":
+        addGameMessage(`📢 ${action.message}`, "announcement");
+        break;
+    }
+
+    setGameState(prev => ({
+      ...prev,
+      adminMessages: [...prev.adminMessages, action]
+    }));
+  }, [addGameMessage, sessionId, getObjectName]);
+
+  const checkForAdminActions = useCallback(async () => {
+    try {
+      const actions = await AdminAction.filter({ session_id: sessionId });
+      const newActions = actions.filter(action =>
+        !gameState.adminMessages.some(msg => msg.id === action.id)
+      );
+
+      for (const action of newActions) {
+        await processAdminAction(action);
+      }
+    } catch (error) {
+      console.error("Error checking admin actions:", error);
+    }
+  }, [sessionId, gameState.adminMessages, processAdminAction]);
+
+  useEffect(() => {
+    const pollInterval = setInterval(() => {
+      if (gameState.phase === "playing") {
+        checkForAdminActions();
+      }
+    }, 2000);
+
+    return () => clearInterval(pollInterval);
+  }, [gameState.phase, checkForAdminActions]);
+
+  const createInitialObjects = useCallback(async () => {
+    const initialObjects = [
+      { object_type: "npc", position: { x: 3, y: 4 }, state: "inactive", health: 50 },
+      { object_type: "trap", position: { x: 8, y: 6 }, state: "inactive", can_interact: true },
+      { object_type: "boss", position: { x: 15, y: 10 }, state: "inactive", health: 0 },
+      { object_type: "treasure", position: { x: 12, y: 3 }, state: "active", can_interact: true },
+      { object_type: "crystal", position: { x: 5, y: 8 }, state: "active", admin_controlled: true },
+      { object_type: "altar", position: { x: 18, y: 5 }, state: "active" }
+    ];
+
+    for (const obj of initialObjects) {
+      await GameObject.create({
+        session_id: sessionId,
+        ...obj
+      });
+    }
+  }, [sessionId]);
+
+  const startIntroSequence = useCallback(() => {
+    const messages = [
+      "Welcome to the Dungeon, Keeper...",
+      "The shadows whisper your arrival...",
+      "Your duties await in the depths below...",
+      `You are the ${gameState.session?.npc_role?.replace('_', ' ').toUpperCase()}`,
+      gameState.session?.game_mode === "hard_hero_alive"
+        ? "DANGER: A hero stalks these halls!"
+        : "The dungeon is quiet... for now.",
+      "Begin your work, but stay in the shadows..."
+    ];
+
+    let messageIndex = 0;
+    const showNextMessage = () => {
+      if (messageIndex < messages.length) {
+        addGameMessage(messages[messageIndex], "intro");
+        messageIndex++;
+        setTimeout(showNextMessage, 2500);
+      } else {
+        setTimeout(() => {
+          setGameState(prev => ({ ...prev, phase: "playing" }));
+          addGameMessage("Your shift begins now. Stay vigilant.", "system");
+        }, 1500);
+      }
+    };
+    showNextMessage();
+  }, [addGameMessage, gameState.session?.npc_role, gameState.session?.game_mode]);
+
+  const initializeGameSession = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const session = await GameSession.get(sessionId);
+      let objects = await GameObject.filter({ session_id: sessionId });
+
+      if (objects.length === 0) {
+        await createInitialObjects();
+        objects = await GameObject.filter({ session_id: sessionId });
+      }
+
+      setGameState(prev => ({
+        ...prev,
+        session,
+        objects,
+        heroActive: session.game_mode === "hard_hero_alive" || session.game_mode === "nightmare_mode",
+        currentTask: generateTask(session.npc_role)
+      }));
+
+      startIntroSequence();
+    } catch (error) {
+      console.error("Error initializing game session:", error);
+      addGameMessage("Failed to load session. Please try again.", "error");
+      navigate(createPageUrl("Dashboard"));
+    }
+    setIsLoading(false);
+  }, [sessionId, generateTask, startIntroSequence, addGameMessage, navigate, createInitialObjects]);
+
+  useEffect(() => {
+    if (sessionId) {
+      initializeGameSession();
+    }
+  }, [sessionId, initializeGameSession]);
+
+  const pauseGame = () => {
+    setGameState(prev => ({
+      ...prev,
+      phase: prev.phase === "paused" ? "playing" : "paused"
+    }));
+  };
+
+  const quitGame = async () => {
+    await GameSession.update(sessionId, {
+      status: "completed",
+      current_score: gameState.score,
+      time_elapsed: gameState.timeElapsed,
+      tasks_completed: gameState.tasksCompleted
+    });
+    navigate(createPageUrl("Dashboard"));
+  };
+
+  const getMessageTypeStyle = (type) => {
+    switch (type) {
+      case "admin":
+        return "border-l-4 border-red-400 bg-red-900/20 text-red-200";
+      case "success":
+        return "border-l-4 border-green-400 bg-green-900/20 text-green-200";
+      case "intro":
+        return "border-l-4 border-purple-400 bg-purple-900/20 text-purple-200";
+      case "announcement":
+        return "border-l-4 border-yellow-400 bg-yellow-900/20 text-yellow-200";
+      default:
+        return "border-l-4 border-blue-400 bg-blue-900/20 text-blue-200";
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center"
+        style={{ background: 'linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%)' }}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-400 mx-auto mb-4" />
+          <p className="text-xl" style={{ color: 'var(--text-primary)' }}>
+            Initializing Dungeon Systems...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-screen overflow-hidden flex flex-col" style={{ background: 'linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%)' }}>
+      {/* Game Header */}
+      <div className="p-4 border-b" style={{ borderColor: 'var(--bg-card)' }}>
+        <div className="flex items-center justify-between max-w-7xl mx-auto">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={quitGame}
+              className="hover:bg-white/10"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-orange-400">
+                {gameState.session?.npc_role?.replace('_', ' ').toUpperCase()} DUTY
+              </h1>
+              <p style={{ color: 'var(--text-secondary)' }}>
+                {gameState.session?.game_mode?.replace('_', ' ').toUpperCase()}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Badge variant="outline">Score: {gameState.score}</Badge>
+              <Badge variant="outline">Time: {Math.floor(gameState.timeElapsed / 60)}:{(gameState.timeElapsed % 60).toString().padStart(2, '0')}</Badge>
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setSoundEnabled(!soundEnabled)}
+            >
+              {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setShowHero(!showHero)}
+            >
+              {showHero ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={pauseGame}
+              className="hover:bg-white/10"
+            >
+              {gameState.phase === "paused" ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 relative overflow-hidden" ref={gameContainerRef}>
+        {/* Game Area (transformed by camera) */}
+        <motion.div
+          className="absolute top-0 left-0 origin-top-left"
+          style={{
+            width: GAME_WIDTH * CELL_SIZE,
+            height: GAME_HEIGHT * CELL_SIZE,
+          }}
+          animate={{
+            x: camera.x,
+            y: camera.y
+          }}
+          transition={{ type: "spring", stiffness: 100, damping: 20 }}
+        >
+          {/* Background Grid */}
+          <div className="grid absolute top-0 left-0 w-full h-full" style={{ gridTemplateColumns: `repeat(${GAME_WIDTH}, 1fr)` }}>
+            {Array.from({ length: GAME_WIDTH * GAME_HEIGHT }).map((_, i) => (
+              <div key={i} className="w-full h-full border border-gray-800" style={{ backgroundColor: '#2a2a2a' }}></div>
+            ))}
+          </div>
+
+          {/* Game Objects */}
+          {gameState.objects.map(obj => {
+            const Asset = gameAssets[obj.object_type];
+            return (
+              <motion.div
+                key={obj.id}
+                className="absolute flex items-center justify-center rounded-sm"
+                style={{
+                  left: obj.position.x * CELL_SIZE,
+                  top: obj.position.y * CELL_SIZE,
+                  width: CELL_SIZE,
+                  height: CELL_SIZE,
+                  backgroundColor: Asset?.color,
+                }}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                whileHover={{ scale: 1.1, zIndex: 1 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              >
+                {Asset && React.createElement(Asset.icon, { className: "w-4 h-4 text-white" })}
+                {obj.admin_controlled && (
+                  <Badge variant="secondary" className="absolute -top-2 -right-2 px-1 py-0.5 text-xs bg-blue-600 text-white">A</Badge>
+                )}
+                {obj.health !== undefined && (
+                    <Progress value={obj.health} className="absolute bottom-0 w-full h-1 rounded-none bg-gray-700"
+                        indicatorClassName={obj.health > 70 ? 'bg-green-500' : obj.health > 30 ? 'bg-yellow-500' : 'bg-red-500'}
+                    />
+                )}
+              </motion.div>
+            )
+          })}
+
+          {/* Player Character */}
+          <motion.div
+            className="absolute w-8 h-8 bg-teal-400 rounded-full flex items-center justify-center shadow-lg"
+            style={{
+              left: gameState.playerPosition.x * CELL_SIZE,
+              top: gameState.playerPosition.y * CELL_SIZE,
+              boxShadow: '0 0 15px teal',
+            }}
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          >
+            <div className="w-2 h-2 bg-white rounded-full"></div>
+          </motion.div>
+
+          {/* Hero Character */}
+          {gameState.heroActive && showHero && (
+            <motion.div
+              className="absolute w-8 h-8 bg-red-600 rounded flex items-center justify-center shadow-lg animate-pulse"
+              style={{
+                left: gameState.heroPosition.x * CELL_SIZE,
+                top: gameState.heroPosition.y * CELL_SIZE,
+                boxShadow: '0 0 15px red',
+              }}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+            >
+              <Skull className="w-5 h-5 text-white" />
+            </motion.div>
+          )}
+        </motion.div>
+
+        {/* Mobile Controls */}
+        {isMobile && (
+          <>
+            <div className="fixed bottom-8 left-8 z-10">
+              <div className="relative w-32 h-32">
+                <Button onTouchStart={() => keysPressed.add(keyBindings.up)} onTouchEnd={() => keysPressed.delete(keyBindings.up)} className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full bg-white/10 backdrop-blur-sm text-white text-lg flex items-center justify-center">▲</Button>
+                <Button onTouchStart={() => keysPressed.add(keyBindings.down)} onTouchEnd={() => keysPressed.delete(keyBindings.down)} className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full bg-white/10 backdrop-blur-sm text-white text-lg flex items-center justify-center">▼</Button>
+                <Button onTouchStart={() => keysPressed.add(keyBindings.left)} onTouchEnd={() => keysPressed.delete(keyBindings.left)} className="absolute left-0 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 backdrop-blur-sm text-white text-lg flex items-center justify-center">◀</Button>
+                <Button onTouchStart={() => keysPressed.add(keyBindings.right)} onTouchEnd={() => keysPressed.delete(keyBindings.right)} className="absolute right-0 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 backdrop-blur-sm text-white text-lg flex items-center justify-center">▶</Button>
+              </div>
+            </div>
+            <div className="fixed bottom-8 right-8 flex flex-col gap-4 z-10">
+              <Button onTouchStart={handleInteraction} className="w-20 h-20 rounded-full text-2xl bg-red-500/50 backdrop-blur-sm text-white flex items-center justify-center">E</Button>
+            </div>
+          </>
+        )}
+
+        {/* Messages UI overlay */}
+        <AnimatePresence>
+          {gameState.gameMessages.length > 0 && (
+            <Card style={{ backgroundColor: 'var(--bg-card)', zIndex: 20 }} className="border-0 absolute bottom-4 left-1/2 -translate-x-1/2 max-w-sm w-full">
+              <CardContent className="p-4">
+                <div className="space-y-2">
+                  {gameState.gameMessages.map((message) => (
+                    <motion.div
+                      key={message.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      className={`p-3 rounded text-sm ${getMessageTypeStyle(message.type)}`}
+                    >
+                      <div className="flex items-start gap-2">
+                        {message.type === "admin" && <MessageSquare className="w-4 h-4 mt-0.5 flex-shrink-0" />}
+                        <span>{message.text}</span>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}

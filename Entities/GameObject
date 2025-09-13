@@ -1,0 +1,75 @@
+{
+  "name": "GameObject",
+  "type": "object",
+  "properties": {
+    "session_id": {
+      "type": "string",
+      "description": "Game session this object belongs to"
+    },
+    "object_type": {
+      "type": "string",
+      "enum": [
+        "trap",
+        "npc",
+        "boss",
+        "treasure",
+        "wall",
+        "door",
+        "crystal",
+        "torch",
+        "statue",
+        "altar",
+        "portal"
+      ],
+      "description": "Type of game object"
+    },
+    "position": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        }
+      }
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive",
+        "broken",
+        "healing",
+        "speaking"
+      ],
+      "default": "active"
+    },
+    "health": {
+      "type": "number",
+      "default": 100
+    },
+    "properties": {
+      "type": "object",
+      "description": "Object-specific properties"
+    },
+    "can_interact": {
+      "type": "boolean",
+      "default": true
+    },
+    "admin_controlled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this object is under admin control"
+    },
+    "last_message": {
+      "type": "string",
+      "description": "Last message spoken through this object"
+    }
+  },
+  "required": [
+    "session_id",
+    "object_type",
+    "position"
+  ]
+}

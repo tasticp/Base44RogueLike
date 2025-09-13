@@ -1,0 +1,310 @@
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { GameSession } from "@/entities/all";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+import { motion } from "framer-motion";
+import { 
+  ArrowLeft, 
+  Play, 
+  Shield, 
+  Skull, 
+  Crown, 
+  Zap,
+  Target,
+  Heart,
+  ShoppingBag,
+  Ghost,
+  Sparkles
+} from "lucide-react";
+
+export default function GameModes() {
+  const navigate = useNavigate();
+  const [selectedMode, setSelectedMode] = useState("");
+  const [selectedRole, setSelectedRole] = useState("");
+  const [isStarting, setIsStarting] = useState(false);
+
+  const gameModes = [
+    {
+      id: "easy_hero_dead",
+      title: "Easy Mode",
+      subtitle: "Hero is Dead",
+      description: "The hero has fallen! Perfect time to reset traps, heal NPCs, and prepare the dungeon for the next adventurer.",
+      icon: Shield,
+      color: "from-green-500 to-emerald-600",
+      difficulty: "Beginner",
+      tasks: ["Set new traps", "Heal injured NPCs", "Restock shop items", "Revive fallen bosses"]
+    },
+    {
+      id: "hard_hero_alive", 
+      title: "Hard Mode",
+      subtitle: "Hero is Active",
+      description: "A hero is actively exploring! Stay hidden, avoid detection, and complete your tasks without being caught.",
+      icon: Skull,
+      color: "from-red-500 to-rose-600",
+      difficulty: "Expert", 
+      tasks: ["Avoid hero detection", "Quick trap resets", "Silent NPC healing", "Shadow movement only"]
+    },
+    {
+      id: "nightmare_mode",
+      title: "Nightmare Mode", 
+      subtitle: "Multiple Heroes",
+      description: "Multiple heroes are raiding the dungeon! Ultimate stealth and efficiency required.",
+      icon: Crown,
+      color: "from-purple-500 to-violet-600",
+      difficulty: "Master",
+      tasks: ["Track multiple heroes", "Coordinate with other NPCs", "Emergency protocols", "Master stealth tactics"]
+    },
+    {
+      id: "creative_mode",
+      title: "Creative Mode",
+      subtitle: "Sandbox Play",
+      description: "Unlimited resources and time to experiment with dungeon management without pressure.",
+      icon: Sparkles, 
+      color: "from-blue-500 to-cyan-600",
+      difficulty: "Relaxed",
+      tasks: ["Unlimited resources", "No time limits", "Experiment freely", "Learn mechanics"]
+    }
+  ];
+
+  const npcRoles = [
+    {
+      id: "trap_setter",
+      name: "Trap Setter",
+      description: "Master of mechanical devices and deadly surprises",
+      icon: Target,
+      color: "text-orange-400",
+      abilities: ["Set pressure plates", "Arm spike traps", "Poison dart mechanisms", "Pitfall creation"]
+    },
+    {
+      id: "healer", 
+      name: "Dungeon Healer",
+      description: "Keeper of life force and revival magic",
+      icon: Heart,
+      color: "text-green-400", 
+      abilities: ["Heal wounded NPCs", "Revive fallen bosses", "Restore HP potions", "Blessing rituals"]
+    },
+    {
+      id: "store_keeper",
+      name: "Shop Keeper", 
+      description: "Master merchant and inventory manager",
+      icon: ShoppingBag,
+      color: "text-blue-400",
+      abilities: ["Restock inventory", "Price management", "Customer service", "Treasure organization"] 
+    },
+    {
+      id: "monster_summoner",
+      name: "Monster Summoner",
+      description: "Controller of creatures and minions",
+      icon: Ghost,
+      color: "text-purple-400",
+      abilities: ["Summon minions", "Control monsters", "Set patrol routes", "Creature breeding"]
+    },
+    {
+      id: "boss_reviver",
+      name: "Boss Reviver",
+      description: "Specialist in bringing back fallen champions",
+      icon: Skull,
+      color: "text-red-400",
+      abilities: ["Revive boss monsters", "Restore boss abilities", "Power enhancement", "Elite summoning"]
+    }
+  ];
+
+  const startGame = async () => {
+    if (!selectedMode || !selectedRole) return;
+    
+    setIsStarting(true);
+    try {
+      const session = await GameSession.create({
+        level_id: "tutorial_level", // We'll create this later
+        game_mode: selectedMode,
+        npc_role: selectedRole,
+        current_score: 0,
+        tasks_completed: [],
+        session_state: {},
+        time_elapsed: 0,
+        status: "active"
+      });
+      
+      // Navigate to game session (we'll create this page next)
+      navigate(createPageUrl(`GameSession?id=${session.id}`));
+    } catch (error) {
+      console.error("Error starting game:", error);
+    }
+    setIsStarting(false);
+  };
+
+  return (
+    <div className="min-h-screen p-6" style={{ background: 'linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%)' }}>
+      <div className="max-w-6xl mx-auto">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-4 mb-8"
+        >
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => navigate(createPageUrl("Dashboard"))}
+            className="hover:bg-white/10"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-orange-400">
+              Choose Your Path
+            </h1>
+            <p className="text-xl" style={{ color: 'var(--text-secondary)' }}>
+              Select game mode and NPC role to begin your dungeon duties
+            </p>
+          </div>
+        </motion.div>
+
+        <div className="grid lg:grid-cols-2 gap-8">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <Card style={{ backgroundColor: 'var(--bg-card)' }} className="border-0 mb-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                  <Zap className="w-5 h-5" style={{ color: 'var(--accent-primary)' }} />
+                  Game Modes
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {gameModes.map((mode, index) => (
+                  <motion.div
+                    key={mode.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 + index * 0.1 }}
+                    className={`p-4 rounded-lg cursor-pointer transition-all duration-300 ${
+                      selectedMode === mode.id 
+                        ? 'ring-2 ring-red-500 bg-red-500/10' 
+                        : 'hover:bg-white/5'
+                    }`}
+                    onClick={() => setSelectedMode(mode.id)}
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${mode.color} flex items-center justify-center`}>
+                        <mode.icon className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
+                            {mode.title}
+                          </h3>
+                          <Badge variant="outline" className="text-xs">
+                            {mode.difficulty}
+                          </Badge>
+                        </div>
+                        <p className="font-medium text-sm mb-2" style={{ color: 'var(--accent-primary)' }}>
+                          {mode.subtitle}
+                        </p>
+                        <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
+                          {mode.description}
+                        </p>
+                        <div className="flex flex-wrap gap-1">
+                          {mode.tasks.slice(0, 3).map((task, i) => (
+                            <Badge key={i} variant="secondary" className="text-xs">
+                              {task}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Card style={{ backgroundColor: 'var(--bg-card)' }} className="border-0 mb-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                  <Crown className="w-5 h-5" style={{ color: 'var(--accent-secondary)' }} />
+                  NPC Roles
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {npcRoles.map((role, index) => (
+                  <motion.div
+                    key={role.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 + index * 0.1 }}
+                    className={`p-4 rounded-lg cursor-pointer transition-all duration-300 ${
+                      selectedRole === role.id 
+                        ? 'ring-2 ring-orange-500 bg-orange-500/10' 
+                        : 'hover:bg-white/5'
+                    }`}
+                    onClick={() => setSelectedRole(role.id)}
+                  >
+                    <div className="flex items-start gap-4">
+                      <role.icon className={`w-8 h-8 ${role.color}`} />
+                      <div className="flex-1">
+                        <h3 className="text-lg font-bold mb-1" style={{ color: 'var(--text-primary)' }}>
+                          {role.name}
+                        </h3>
+                        <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
+                          {role.description}
+                        </p>
+                        <div className="flex flex-wrap gap-1">
+                          {role.abilities.slice(0, 3).map((ability, i) => (
+                            <Badge key={i} variant="outline" className="text-xs">
+                              {ability}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="text-center"
+        >
+          <Button
+            onClick={startGame}
+            disabled={!selectedMode || !selectedRole || isStarting}
+            className="bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white px-8 py-3 text-lg shadow-lg hover:shadow-red-500/25 disabled:opacity-50"
+          >
+            {isStarting ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
+                Starting Session...
+              </>
+            ) : (
+              <>
+                <Play className="w-5 h-5 mr-2" />
+                Begin Dungeon Duties
+              </>
+            )}
+          </Button>
+          {(!selectedMode || !selectedRole) && (
+            <p className="text-sm mt-2" style={{ color: 'var(--text-secondary)' }}>
+              Please select both a game mode and NPC role to continue
+            </p>
+          )}
+        </motion.div>
+      </div>
+    </div>
+  );
+}

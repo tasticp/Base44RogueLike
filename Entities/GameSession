@@ -1,0 +1,64 @@
+{
+  "name": "GameSession",
+  "type": "object",
+  "properties": {
+    "level_id": {
+      "type": "string",
+      "description": "ID of the level being played"
+    },
+    "game_mode": {
+      "type": "string",
+      "enum": [
+        "easy_hero_dead",
+        "hard_hero_alive",
+        "nightmare_mode",
+        "creative_mode"
+      ],
+      "default": "easy_hero_dead"
+    },
+    "npc_role": {
+      "type": "string",
+      "enum": [
+        "trap_setter",
+        "healer",
+        "store_keeper",
+        "monster_summoner",
+        "boss_reviver"
+      ],
+      "default": "trap_setter"
+    },
+    "current_score": {
+      "type": "number",
+      "default": 0
+    },
+    "tasks_completed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "session_state": {
+      "type": "object",
+      "description": "Current game state"
+    },
+    "time_elapsed": {
+      "type": "number",
+      "default": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "paused",
+        "completed",
+        "failed"
+      ],
+      "default": "active"
+    }
+  },
+  "required": [
+    "level_id",
+    "game_mode",
+    "npc_role"
+  ]
+}
