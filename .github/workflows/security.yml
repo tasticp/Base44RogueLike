@@ -1,0 +1,171 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 2 * * *'  # Daily at 2 AM UTC
+
+jobs:
+  secret-scan:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  codeql-analysis:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    strategy:
+      matrix:
+        language: [ 'javascript', 'python', 'go', 'java', 'cpp' ]
+        include:
+          - language: javascript
+            build: npm install && npm run build
+          - language: python
+            build: pip install -r requirements.txt
+          - language: cpp
+            build: make
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+        if: matrix.build != ''
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+  dependency-check:
+    name: Dependency Vulnerability Check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run npm audit (JavaScript)
+        if: hashFiles('package.json') != ''
+        run: |
+          npm ci
+          npm audit --audit-level=high
+
+      - name: Run pip-audit (Python)
+        if: hashFiles('requirements.txt') != ''
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements.txt --format=json --output=audit-results.json
+
+      - name: Run cargo audit (Rust)
+        if: hashFiles('Cargo.toml') != ''
+        run: |
+          cargo install cargo-audit
+          cargo audit
+
+  security-linting:
+    name: Security Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run ESLint security rules (JavaScript)
+        if: hashFiles('package.json') != ''
+        run: |
+          npm ci
+          npx eslint . --ext .js,.ts,.jsx,.tsx --config .eslintrc.security.js || true
+
+      - name: Run Bandit security linter (Python)
+        if: hashFiles('requirements.txt') != ''
+        run: |
+          pip install bandit
+          bandit -r . -f json -o bandit-report.json || true
+
+      - name: Run Semgrep
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/security-audit
+            p/secrets
+            p/owasp-top-ten
+
+  malware-scan:
+    name: Malware Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup ClamAV
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clamav clamav-freshclam
+          sudo freshclam
+
+      - name: Run malware scan
+        run: |
+          clamscan -r --infected --exclude-dir=.git . > malware-scan.log 2>&1 || true
+          echo "Malware scan complete"
+
+      - name: Upload scan results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: malware-scan-results
+          path: malware-scan.log
+          retention-days: 30
+
+  security-report:
+    name: Generate Security Report
+    runs-on: ubuntu-latest
+    needs: [secret-scan, codeql-analysis, dependency-check, security-linting, malware-scan]
+    if: always()
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Generate security summary
+        run: |
+          echo "# Security Scan Summary" >> security-summary.md
+          echo "" >> security-summary.md
+          echo "## Scan Results" >> security-summary.md
+          echo "- Secret Scanning: ${{ needs.secret-scan.result }}" >> security-summary.md
+          echo "- CodeQL Analysis: ${{ needs.codeql-analysis.result }}" >> security-summary.md
+          echo "- Dependency Check: ${{ needs.dependency-check.result }}" >> security-summary.md
+          echo "- Security Linting: ${{ needs.security-linting.result }}" >> security-summary.md
+          echo "- Malware Scan: ${{ needs.malware-scan.result }}" >> security-summary.md
+
+      - name: Upload security summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-summary
+          path: security-summary.md

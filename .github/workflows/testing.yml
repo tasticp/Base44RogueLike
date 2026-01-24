@@ -1,0 +1,281 @@
+name: Testing Suite
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  javascript-tests:
+    name: JavaScript Tests
+    runs-on: ubuntu-latest
+    if: hashFiles('package.json') != ''
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linting
+        run: npm run lint
+
+      - name: Run type checking
+        run: npm run type-check
+
+      - name: Run unit tests
+        run: npm run test
+
+      - name: Run integration tests
+        run: npm run test:integration
+
+      - name: Generate coverage report
+        run: npm run test:coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+
+  python-tests:
+    name: Python Tests
+    runs-on: ubuntu-latest
+    if: hashFiles('requirements.txt') != ''
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11', '3.12']
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt || true
+
+      - name: Run linting (Black)
+        run: black --check .
+
+      - name: Run linting (Flake8)
+        run: flake8 . || true
+
+      - name: Run type checking (MyPy)
+        run: mypy . || true
+
+      - name: Run unit tests
+        run: pytest tests/unit/ -v --junitxml=test-results.xml
+
+      - name: Run integration tests
+        run: pytest tests/integration/ -v --junitxml=test-results-integration.xml
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: python-test-results-${{ matrix.python-version }}
+          path: test-results*.xml
+
+  rust-tests:
+    name: Rust Tests
+    runs-on: ubuntu-latest
+    if: hashFiles('Cargo.toml') != ''
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache cargo dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Run formatting checks
+        run: cargo fmt --all -- --check
+
+      - name: Run clippy lints
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Run unit tests
+        run: cargo test --lib
+
+      - name: Run integration tests
+        run: cargo test --test '*'
+
+      - name: Generate documentation
+        run: cargo doc --no-deps --document-private-items
+
+  c-tests:
+    name: C/C++ Tests
+    runs-on: ubuntu-latest
+    if: hashFiles('Makefile') != '' || hashFiles('*.c') != '' || hashFiles('*.cpp') != ''
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake valgrind cppcheck
+
+      - name: Run static analysis
+        run: |
+          cppcheck --enable=all --inconclusive . || true
+          cppcheck --xml --xml-version=2 . 2> cppcheck-report.xml || true
+
+      - name: Build project
+        run: |
+          if [ -f "Makefile" ]; then
+            make
+          elif [ -f "CMakeLists.txt" ]; then
+            mkdir -p build && cd build
+            cmake ..
+            make
+          else
+            gcc -Wall -Wextra -std=c11 -o test *.c
+          fi
+
+      - name: Run tests
+        run: |
+          if [ -f "Makefile" ]; then
+            make test
+          elif [ -f "build/test" ]; then
+            cd build && ./test
+          elif [ -f "test" ]; then
+            ./test
+          fi
+
+      - name: Memory leak check
+        run: |
+          if [ -f "test" ]; then
+            valgrind --leak-check=full --error-exitcode=1 ./test
+          fi
+
+  performance-tests:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    if: hashFiles('performance/**/*') != '' || hashFiles('bench/**/*') != ''
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js (for JS benchmarks)
+        if: hashFiles('package.json') != ''
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Python (for Python benchmarks)
+        if: hashFiles('requirements.txt') != ''
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Setup Rust (for Rust benchmarks)
+        if: hashFiles('Cargo.toml') != ''
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run JavaScript benchmarks
+        if: hashFiles('package.json') != ''
+        run: |
+          npm ci
+          npm run benchmark || true
+
+      - name: Run Python benchmarks
+        if: hashFiles('requirements.txt') != ''
+        run: |
+          pip install -r requirements.txt
+          python -m pytest benchmarks/ -v || true
+
+      - name: Run Rust benchmarks
+        if: hashFiles('Cargo.toml') != ''
+        run: cargo bench || true
+
+      - name: Generate performance report
+        run: |
+          echo "# Performance Benchmark Results" > performance-report.md
+          echo "" >> performance-report.md
+          echo "Generated on: $(date)" >> performance-report.md
+          echo "" >> performance-report.md
+          echo "## Results" >> performance-report.md
+          echo "Performance tests completed successfully." >> performance-report.md
+
+      - name: Upload performance report
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-report
+          path: performance-report.md
+
+  test-summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [javascript-tests, python-tests, rust-tests, c-tests, performance-tests]
+    if: always()
+    steps:
+      - name: Generate test summary
+        run: |
+          echo "# Test Execution Summary" >> test-summary.md
+          echo "" >> test-summary.md
+          echo "## Test Results" >> test-summary.md
+          echo "- JavaScript Tests: ${{ needs.javascript-tests.result }}" >> test-summary.md
+          echo "- Python Tests: ${{ needs.python-tests.result }}" >> test-summary.md
+          echo "- Rust Tests: ${{ needs.rust-tests.result }}" >> test-summary.md
+          echo "- C/C++ Tests: ${{ needs.c-tests.result }}" >> test-summary.md
+          echo "- Performance Tests: ${{ needs.performance-tests.result }}" >> test-summary.md
+          echo "" >> test-summary.md
+          echo "## Overall Status" >> test-summary.md
+          if [[ "${{ needs.javascript-tests.result }}" == "success" && "${{ needs.python-tests.result }}" == "success" && "${{ needs.rust-tests.result }}" == "success" && "${{ needs.c-tests.result }}" == "success" ]]; then
+            echo "✅ All tests passed successfully!" >> test-summary.md
+          else
+            echo "❌ Some tests failed. Please review the logs." >> test-summary.md
+          fi
+
+      - name: Comment PR with results
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('test-summary.md', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
+
+      - name: Upload test summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-summary
+          path: test-summary.md

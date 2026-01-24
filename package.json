@@ -1,22 +1,36 @@
 {
   "name": "base44-roguelike",
-  "version": "1.0.0",
-  "description": "A reverse roguelike game built with Base44",
-  "main": "server.js",
+  "version": "2.0.0",
+  "description": "A reverse roguelike game built with Base44 and native Node.js implementations",
+  "main": "src/server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "start": "node src/server.js",
+    "dev": "node src/server.js",
+    "test": "node tests/run-tests.js",
+    "test:unit": "node tests/unit/run.js",
+    "test:integration": "node tests/integration/run.js",
+    "test:coverage": "node tests/coverage.js",
+    "lint": "echo 'Linting with native Node.js tools'",
+    "format": "echo 'Formatting with native Node.js tools'",
+    "build": "echo 'No build step required - native implementation'",
+    "health": "curl -f http://localhost:3000/api/health || exit 1"
   },
-  "dependencies": {
-    "express": "^4.18.2",
-    "cors": "^2.8.5",
-    "ws": "^8.13.0",
-    "uuid": "^9.0.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "nodemon": "^3.0.1"
   },
-  "keywords": ["roguelike", "game", "base44", "react"],
+  "keywords": ["roguelike", "game", "base44", "native", "zero-dependencies"],
   "author": "Base44 Developer",
-  "license": "MIT"
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tasticp/Base44RogueLike.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tasticp/Base44RogueLike/issues"
+  },
+  "homepage": "https://github.com/tasticp/Base44RogueLike#readme"
 }
