@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Modes - NPC Dungeon</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #1a1a2e;
+            --bg-card: #16213e;
+            --accent-primary: #e94560;
+            --accent-secondary: #f39c12;
+            --text-primary: #eee6e6;
+            --text-secondary: #a8a8b3;
+            --border-color: #2a3a52;
+        }
+        
+        html, body {
+            height: 100%;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .nav {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .header {
+            margin-bottom: 40px;
+        }
+
+        .title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .section {
+            margin-bottom: 60px;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 28px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .mode-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 28px 24px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .mode-card:hover {
+            border-color: var(--accent-primary);
+            background: rgba(22, 33, 62, 0.8);
+        }
+
+        .mode-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+        }
+
+        .mode-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .mode-description {
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+            flex-grow: 1;
+        }
+
+        .mode-difficulty {
+            display: inline-block;
+            padding: 4px 12px;
+            background: rgba(233, 69, 96, 0.2);
+            border-radius: 4px;
+            font-size: 0.85rem;
+            margin-bottom: 16px;
+            color: var(--accent-secondary);
+        }
+
+        .button {
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+
+        .button:hover {
+            background: #d63552;
+            transform: translateY(-2px);
+        }
+
+        .roles-section {
+            margin-top: 40px;
+        }
+
+        .roles-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 28px;
+        }
+
+        .role-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .role-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .role-card:hover {
+            border-color: var(--accent-secondary);
+            background: rgba(22, 33, 62, 0.9);
+        }
+
+        .role-icon {
+            font-size: 2rem;
+            margin-bottom: 12px;
+        }
+
+        .role-name {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .role-description {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 768px) {
+            .title {
+                font-size: 1.8rem;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .role-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <div class="nav-content">
+            <h1 class="nav-title">🏰 NPC Dungeon</h1>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/dashboard.html">Dashboard</a></li>
+                <li><a href="/game-modes.html">Play</a></li>
+                <li><a href="/level-creator.html">Create</a></li>
+                <li><a href="/profile.html">Profile</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <header class="header">
+            <h1 class="title">Game Modes</h1>
+            <p class="subtitle">Choose your challenge and NPC role</p>
+        </header>
+
+        <section class="section">
+            <h2 class="section-title">Select Game Mode</h2>
+            <div class="grid">
+                <div class="mode-card" onclick="selectMode('easy_hero_dead')">
+                    <div class="mode-icon">🛡️</div>
+                    <span class="mode-difficulty">Difficulty: Easy</span>
+                    <h3 class="mode-title">Easy Mode</h3>
+                    <p class="mode-description">The hero has fallen. Reset traps, heal NPCs, and prepare the dungeon. Perfect for learning game mechanics.</p>
+                    <button class="button">Start Easy</button>
+                </div>
+
+                <div class="mode-card" onclick="selectMode('hard_hero_alive')">
+                    <div class="mode-icon">💀</div>
+                    <span class="mode-difficulty">Difficulty: Hard</span>
+                    <h3 class="mode-title">Hard Mode</h3>
+                    <p class="mode-description">A hero is actively exploring. Stay hidden, avoid detection, and complete tasks stealthily. Requires strategy.</p>
+                    <button class="button">Start Hard</button>
+                </div>
+
+                <div class="mode-card" onclick="selectMode('nightmare_mode')">
+                    <div class="mode-icon">👑</div>
+                    <span class="mode-difficulty">Difficulty: Nightmare</span>
+                    <h3 class="mode-title">Nightmare Mode</h3>
+                    <p class="mode-description">Multiple heroes are raiding your dungeon. Ultimate stealth and efficiency required. For experienced players.</p>
+                    <button class="button">Start Nightmare</button>
+                </div>
+
+                <div class="mode-card" onclick="selectMode('creative_mode')">
+                    <div class="mode-icon">✨</div>
+                    <span class="mode-difficulty">Difficulty: Custom</span>
+                    <h3 class="mode-title">Creative Mode</h3>
+                    <p class="mode-description">Unlimited resources and time. Experiment with mechanics without pressure. Perfect for learning.</p>
+                    <button class="button">Start Creative</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="roles-section">
+            <h2 class="roles-title">Choose Your NPC Role</h2>
+            <div class="role-grid">
+                <div class="role-card">
+                    <div class="role-icon">🎯</div>
+                    <div class="role-name">Trap Setter</div>
+                    <p class="role-description">Place and activate traps to defend the dungeon</p>
+                </div>
+
+                <div class="role-card">
+                    <div class="role-icon">💚</div>
+                    <div class="role-name">Healer</div>
+                    <p class="role-description">Heal NPCs and keep your team alive</p>
+                </div>
+
+                <div class="role-card">
+                    <div class="role-icon">💰</div>
+                    <div class="role-name">Shop Keeper</div>
+                    <p class="role-description">Manage resources and trade with NPCs</p>
+                </div>
+
+                <div class="role-card">
+                    <div class="role-icon">👹</div>
+                    <div class="role-name">Summoner</div>
+                    <p class="role-description">Summon creatures to assist in defense</p>
+                </div>
+
+                <div class="role-card">
+                    <div class="role-icon">🔮</div>
+                    <div class="role-name">Boss Reviver</div>
+                    <p class="role-description">Revive and empower bosses</p>
+                </div>
+
+                <div class="role-card">
+                    <div class="role-icon">📈</div>
+                    <div class="role-name">Tactician</div>
+                    <p class="role-description">Plan strategies and coordinate team actions</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        function selectMode(modeId) {
+            fetch('/api/entities/GameSession', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    level_id: 'tutorial_level',
+                    game_mode: modeId,
+                    npc_role: 'trap_setter',
+                    current_score: 0,
+                    tasks_completed: [],
+                    session_state: {},
+                    time_elapsed: 0,
+                    status: 'active'
+                })
+            })
+            .then(response => response.json())
+            .then(session => {
+                window.location.href = `/game-session.html?id=${session.id}`;
+            })
+            .catch(error => {
+                console.error('Error starting game:', error);
+                alert('Failed to start game. Please try again.');
+            });
+        }
+    </script>
+</body>
+</html>
