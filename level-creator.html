@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Level Creator - NPC Dungeon</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #1a1a2e;
+            --bg-card: #16213e;
+            --accent-primary: #e94560;
+            --accent-secondary: #f39c12;
+            --text-primary: #eee6e6;
+            --text-secondary: #a8a8b3;
+            --border-color: #2a3a52;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            color: var(--text-primary);
+        }
+
+        .nav {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 20px;
+        }
+
+        .nav-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+
+        .editor-container {
+            display: flex;
+            height: calc(100vh - 60px);
+            max-width: 1400px;
+            margin: 0 auto;
+            gap: 1px;
+            background: var(--bg-secondary);
+        }
+
+        .tools-panel {
+            width: 200px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .tool-section {
+            margin-bottom: 24px;
+        }
+
+        .tool-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--accent-secondary);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .tool-button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 6px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tool-button:hover,
+        .tool-button.active {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+        }
+
+        .canvas-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-primary);
+            position: relative;
+        }
+
+        .canvas-header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .canvas-name {
+            font-weight: 600;
+        }
+
+        .canvas-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            background: var(--accent-primary);
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #d63552;
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: #252f45;
+        }
+
+        .grid-editor {
+            flex: 1;
+            overflow: auto;
+            padding: 20px;
+            position: relative;
+        }
+
+        .editor-grid {
+            display: grid;
+            grid-template-columns: repeat(20, 30px);
+            grid-template-rows: repeat(20, 30px);
+            gap: 1px;
+            background: var(--bg-secondary);
+            padding: 10px;
+            border-radius: 4px;
+            width: fit-content;
+        }
+
+        .grid-cell {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+        }
+
+        .grid-cell:hover {
+            background: rgba(233, 69, 96, 0.2);
+        }
+
+        .grid-cell.wall {
+            background: #0a0a0f;
+        }
+
+        .grid-cell.trap {
+            background: rgba(243, 156, 18, 0.3);
+        }
+
+        .grid-cell.npc {
+            background: rgba(108, 200, 200, 0.3);
+        }
+
+        .grid-cell.spawn {
+            background: rgba(76, 175, 80, 0.3);
+        }
+
+        .properties-panel {
+            width: 220px;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border-color);
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .property-group {
+            margin-bottom: 20px;
+        }
+
+        .property-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--accent-secondary);
+            margin-bottom: 8px;
+        }
+
+        .property-input {
+            width: 100%;
+            padding: 8px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 1024px) {
+            .tools-panel {
+                width: 150px;
+            }
+
+            .properties-panel {
+                width: 150px;
+            }
+
+            .editor-grid {
+                grid-template-columns: repeat(15, 25px);
+                grid-template-rows: repeat(15, 25px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <div class="nav-content">
+            <h1 class="nav-title">🏰 NPC Dungeon</h1>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/dashboard.html">Dashboard</a></li>
+                <li><a href="/game-modes.html">Play</a></li>
+                <li><a href="/level-creator.html">Create</a></li>
+                <li><a href="/profile.html">Profile</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="editor-container">
+        <div class="tools-panel">
+            <div class="tool-section">
+                <div class="tool-title">Editor</div>
+                <button class="tool-button" onclick="clearLevel()">🗑️ Clear Level</button>
+                <button class="tool-button" onclick="saveLevel()">💾 Save</button>
+                <button class="tool-button" onclick="previewLevel()">👁️ Preview</button>
+            </div>
+
+            <div class="tool-section">
+                <div class="tool-title">Tools</div>
+                <button class="tool-button" onclick="selectTool('wall')">🧱 Wall</button>
+                <button class="tool-button" onclick="selectTool('trap')">🎯 Trap</button>
+                <button class="tool-button" onclick="selectTool('npc')">👤 NPC</button>
+                <button class="tool-button" onclick="selectTool('spawn')">🚪 Spawn</button>
+                <button class="tool-button" onclick="selectTool('boss')">👑 Boss</button>
+                <button class="tool-button" onclick="selectTool('treasure')">💎 Treasure</button>
+            </div>
+        </div>
+
+        <div class="canvas-area">
+            <div class="canvas-header">
+                <div class="canvas-name">New Level</div>
+                <div class="canvas-buttons">
+                    <button class="btn btn-secondary" onclick="window.location.href='/dashboard.html'">Cancel</button>
+                    <button class="btn" onclick="publishLevel()">Publish</button>
+                </div>
+            </div>
+
+            <div class="grid-editor">
+                <div class="editor-grid" id="editorGrid"></div>
+            </div>
+        </div>
+
+        <div class="properties-panel">
+            <div class="property-group">
+                <div class="property-label">Level Name</div>
+                <input type="text" class="property-input" placeholder="My Level" value="My Level">
+            </div>
+
+            <div class="property-group">
+                <div class="property-label">Difficulty</div>
+                <select class="property-input">
+                    <option>Easy</option>
+                    <option>Medium</option>
+                    <option>Hard</option>
+                </select>
+            </div>
+
+            <div class="property-group">
+                <div class="property-label">Description</div>
+                <textarea class="property-input" style="resize: vertical; min-height: 100px;" placeholder="Describe your level..."></textarea>
+            </div>
+
+            <div class="property-group">
+                <div class="property-label">Selected Tool</div>
+                <div class="property-input" style="padding: 12px; text-align: center; background: var(--accent-primary);" id="selectedTool">Wall</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedTool = 'wall';
+        const gridSize = 20;
+
+        function initGrid() {
+            const grid = document.getElementById('editorGrid');
+            for (let i = 0; i < gridSize * gridSize; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'grid-cell';
+                cell.id = `cell-${i}`;
+                cell.onclick = () => paintCell(i);
+                grid.appendChild(cell);
+            }
+        }
+
+        function selectTool(tool) {
+            selectedTool = tool;
+            document.getElementById('selectedTool').textContent = 
+                tool.charAt(0).toUpperCase() + tool.slice(1);
+        }
+
+        function paintCell(index) {
+            const cell = document.getElementById(`cell-${index}`);
+            cell.className = `grid-cell ${selectedTool}`;
+        }
+
+        function clearLevel() {
+            if (confirm('Clear all tiles?')) {
+                document.querySelectorAll('.grid-cell').forEach(cell => {
+                    cell.className = 'grid-cell';
+                });
+            }
+        }
+
+        function saveLevel() {
+            alert('Level saved! (Feature coming soon)');
+        }
+
+        function previewLevel() {
+            alert('Preview mode! (Feature coming soon)');
+        }
+
+        function publishLevel() {
+            if (confirm('Publish this level to the community?')) {
+                alert('Level published! (Feature coming soon)');
+            }
+        }
+
+        initGrid();
+    </script>
+</body>
+</html>

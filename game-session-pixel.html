@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NPC Dungeon - Pixel Art Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: #e8e8e8;
+            overflow: hidden;
+        }
+
+        .game-container {
+            display: flex;
+            height: 100vh;
+            gap: 1px;
+            background: #0a0a0a;
+        }
+
+        /* Game Canvas */
+        .game-canvas {
+            flex: 1;
+            background: #1a1a2e;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        canvas {
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+            background: #0f0f1f;
+            border: 2px solid #2a3a52;
+        }
+
+        /* HUD Panel */
+        .hud {
+            width: 280px;
+            background: #0f0f1f;
+            border-left: 2px solid #2a3a52;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding: 16px;
+            font-size: 12px;
+        }
+
+        .hud-section {
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #2a3a52;
+        }
+
+        .hud-section:last-child {
+            border-bottom: none;
+        }
+
+        .hud-title {
+            color: #f39c12;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 11px;
+        }
+
+        .stat {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            padding: 4px 0;
+        }
+
+        .stat-label {
+            color: #a8a8b3;
+        }
+
+        .stat-value {
+            color: #eee6e6;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+        }
+
+        .health-bar {
+            width: 100%;
+            height: 12px;
+            background: #0a0a0f;
+            border: 1px solid #2a3a52;
+            margin-top: 4px;
+            overflow: hidden;
+        }
+
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(to right, #e94560, #f39c12);
+            width: 100%;
+            transition: width 0.3s;
+        }
+
+        .inventory {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4px;
+            margin-top: 8px;
+        }
+
+        .inventory-slot {
+            width: 100%;
+            aspect-ratio: 1;
+            background: #1a1a2e;
+            border: 1px solid #2a3a52;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .inventory-slot:hover {
+            border-color: #e94560;
+            background: rgba(233, 69, 96, 0.1);
+        }
+
+        .inventory-slot.selected {
+            border-color: #f39c12;
+            background: rgba(243, 156, 18, 0.2);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 4px;
+            margin-top: 8px;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 8px;
+            background: #16213e;
+            border: 1px solid #2a3a52;
+            color: #eee6e6;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: bold;
+            transition: all 0.2s;
+            font-family: 'Courier New', monospace;
+        }
+
+        .action-btn:hover {
+            background: #1a3a52;
+            border-color: #e94560;
+        }
+
+        .action-btn.active {
+            background: #e94560;
+            border-color: #e94560;
+        }
+
+        .message-log {
+            flex: 1;
+            overflow-y: auto;
+            background: #0a0a0f;
+            border: 1px solid #2a3a52;
+            padding: 8px;
+            margin-top: 8px;
+            font-size: 11px;
+            line-height: 1.6;
+        }
+
+        .message {
+            margin-bottom: 4px;
+            color: #a8a8b3;
+        }
+
+        .message.action {
+            color: #f39c12;
+            font-weight: bold;
+        }
+
+        .message.combat {
+            color: #e94560;
+            font-weight: bold;
+        }
+
+        .message.success {
+            color: #4cb050;
+        }
+
+        /* UI Dialog */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            display: none;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-box {
+            background: #0f0f1f;
+            border: 2px solid #2a3a52;
+            padding: 20px;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(233, 69, 96, 0.3);
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #f39c12;
+            margin-bottom: 12px;
+        }
+
+        .modal-text {
+            color: #a8a8b3;
+            margin-bottom: 16px;
+            line-height: 1.6;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            background: #e94560;
+            border: 1px solid #e94560;
+            color: white;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: #d63552;
+        }
+
+        .btn-secondary {
+            background: #16213e;
+            border-color: #2a3a52;
+            color: #eee6e6;
+        }
+
+        .btn-secondary:hover {
+            background: #1a3a52;
+        }
+
+        /* Pixel art style scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0a0a0f;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #2a3a52;
+            border-radius: 0;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3a4a62;
+        }
+
+        @media (max-width: 1024px) {
+            .hud {
+                width: 240px;
+                font-size: 11px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .game-container {
+                flex-direction: column;
+            }
+
+            .hud {
+                width: 100%;
+                height: 200px;
+                border-left: none;
+                border-top: 2px solid #2a3a52;
+            }
+
+            canvas {
+                max-width: 100%;
+                max-height: 60vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-canvas">
+            <canvas id="gameCanvas" width="512" height="512"></canvas>
+        </div>
+
+        <div class="hud">
+            <div class="hud-section">
+                <div class="hud-title">Session Info</div>
+                <div class="stat">
+                    <span class="stat-label">Mode:</span>
+                    <span class="stat-value">Easy</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Role:</span>
+                    <span class="stat-value">Keeper</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Turn:</span>
+                    <span class="stat-value" id="turn">1</span>
+                </div>
+            </div>
+
+            <div class="hud-section">
+                <div class="hud-title">Player</div>
+                <div class="stat">
+                    <span class="stat-label">Name:</span>
+                    <span class="stat-value">Shadow Imp</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Level:</span>
+                    <span class="stat-value">1</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">HP:</span>
+                    <span class="stat-value" id="playerHp">100</span>
+                </div>
+                <div class="health-bar">
+                    <div class="health-fill" id="playerHealthBar"></div>
+                </div>
+            </div>
+
+            <div class="hud-section">
+                <div class="hud-title">Resources</div>
+                <div class="stat">
+                    <span class="stat-label">Gold:</span>
+                    <span class="stat-value" id="gold">150</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Mana:</span>
+                    <span class="stat-value" id="mana">50</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Traps:</span>
+                    <span class="stat-value" id="trapCount">3</span>
+                </div>
+            </div>
+
+            <div class="hud-section">
+                <div class="hud-title">Inventory</div>
+                <div class="inventory">
+                    <div class="inventory-slot" title="Health Potion">🧪</div>
+                    <div class="inventory-slot" title="Mana Potion">✨</div>
+                    <div class="inventory-slot" title="Spike Trap">🎯</div>
+                    <div class="inventory-slot" title="Fire Trap">🔥</div>
+                    <div class="inventory-slot" title="Empty"></div>
+                    <div class="inventory-slot" title="Empty"></div>
+                </div>
+            </div>
+
+            <div class="hud-section">
+                <div class="hud-title">Actions</div>
+                <div class="action-buttons">
+                    <button class="action-btn" onclick="performAction('move')">Move</button>
+                    <button class="action-btn" onclick="performAction('attack')">Attack</button>
+                </div>
+                <div class="action-buttons">
+                    <button class="action-btn" onclick="performAction('trap')">Trap</button>
+                    <button class="action-btn" onclick="performAction('defend')">Defend</button>
+                </div>
+                <div class="action-buttons">
+                    <button class="action-btn" onclick="performAction('pass')">Pass</button>
+                    <button class="action-btn" onclick="pauseGame()">Menu</button>
+                </div>
+            </div>
+
+            <div class="hud-section">
+                <div class="hud-title">Log</div>
+                <div class="message-log" id="messageLog">
+                    <div class="message action">> Game Started!</div>
+                    <div class="message">> Dungeon loaded.</div>
+                    <div class="message">> Click canvas to start.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal">
+        <div class="modal-box">
+            <div class="modal-title" id="modalTitle">Welcome</div>
+            <div class="modal-text" id="modalText">Game message here</div>
+            <div class="modal-buttons">
+                <button class="btn" id="modalBtn1" onclick="closeModal()">OK</button>
+                <button class="btn btn-secondary" id="modalBtn2" style="display: none;" onclick="closeModal()">Back</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="game-engine.js"></script>
+    <script>
+        // Game Configuration
+        const TILE_SIZE = 32;
+        const GRID_WIDTH = 16;
+        const GRID_HEIGHT = 16;
+        const COLORS = {
+            bg: '#0f0f1f',
+            wall: '#1a1a2e',
+            floor: '#16213e',
+            player: '#e94560',
+            enemy: '#f39c12',
+            trap: '#4cb050',
+            gold: '#f39c12',
+            text: '#eee6e6',
+        };
+
+        // Canvas setup
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = GRID_WIDTH * TILE_SIZE;
+        canvas.height = GRID_HEIGHT * TILE_SIZE;
+
+        // Game state
+        let gameState = {
+            turn: 1,
+            playerPos: { x: 8, y: 8 },
+            playerHp: 100,
+            playerMaxHp: 100,
+            gold: 150,
+            mana: 50,
+            maxMana: 100,
+            traps: 3,
+            grid: [],
+            enemies: [
+                { x: 2, y: 2, hp: 30, type: 'goblin', emoji: '👹' },
+                { x: 14, y: 3, hp: 25, type: 'orc', emoji: '👹' },
+            ],
+            items: [
+                { x: 5, y: 5, type: 'gold', emoji: '💰', amount: 50 },
+                { x: 10, y: 10, type: 'potion', emoji: '🧪', amount: 20 },
+            ],
+            selectedAction: null,
+        };
+
+        // Initialize game grid
+        function initGrid() {
+            gameState.grid = [];
+            for (let y = 0; y < GRID_HEIGHT; y++) {
+                gameState.grid[y] = [];
+                for (let x = 0; x < GRID_WIDTH; x++) {
+                    // Create walls around edges and some random walls
+                    let isWall = x === 0 || x === GRID_WIDTH - 1 || y === 0 || y === GRID_HEIGHT - 1;
+                    if (!isWall && Math.random() < 0.1) isWall = true;
+                    gameState.grid[y][x] = isWall ? 1 : 0;
+                }
+            }
+            // Clear player area
+            gameState.grid[8][8] = 0;
+        }
+
+        // Draw pixel art tile
+        function drawTile(x, y, type, emoji) {
+            const px = x * TILE_SIZE;
+            const py = y * TILE_SIZE;
+
+            if (type === 'wall') {
+                ctx.fillStyle = '#0a0a0f';
+                ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                ctx.strokeStyle = '#1a1a2e';
+                ctx.strokeRect(px, py, TILE_SIZE, TILE_SIZE);
+            } else if (type === 'floor') {
+                ctx.fillStyle = '#16213e';
+                ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                ctx.strokeStyle = '#2a3a52';
+                ctx.strokeRect(px + 1, py + 1, TILE_SIZE - 2, TILE_SIZE - 2);
+            }
+
+            if (emoji) {
+                ctx.font = 'bold 24px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(emoji, px + TILE_SIZE / 2, py + TILE_SIZE / 2);
+            }
+        }
+
+        // Render game
+        function render() {
+            ctx.fillStyle = COLORS.bg;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grid
+            for (let y = 0; y < GRID_HEIGHT; y++) {
+                for (let x = 0; x < GRID_WIDTH; x++) {
+                    if (gameState.grid[y][x] === 1) {
+                        drawTile(x, y, 'wall');
+                    } else {
+                        drawTile(x, y, 'floor');
+                    }
+                }
+            }
+
+            // Draw items
+            gameState.items.forEach(item => {
+                drawTile(item.x, item.y, 'floor', item.emoji);
+            });
+
+            // Draw enemies
+            gameState.enemies.forEach(enemy => {
+                drawTile(enemy.x, enemy.y, 'floor', enemy.emoji);
+            });
+
+            // Draw player
+            drawTile(gameState.playerPos.x, gameState.playerPos.y, 'floor', '👤');
+
+            // Update HUD
+            document.getElementById('turn').textContent = gameState.turn;
+            document.getElementById('playerHp').textContent = gameState.playerHp;
+            document.getElementById('playerHealthBar').style.width = (gameState.playerHp / gameState.playerMaxHp) * 100 + '%';
+            document.getElementById('gold').textContent = gameState.gold;
+            document.getElementById('mana').textContent = gameState.mana;
+            document.getElementById('trapCount').textContent = gameState.traps;
+        }
+
+        // Game logic
+        function performAction(action) {
+            addMessage(`> Action: ${action.toUpperCase()}`, 'action');
+
+            if (action === 'move') {
+                // Move player randomly for demo
+                const directions = [
+                    { x: 1, y: 0 },
+                    { x: -1, y: 0 },
+                    { x: 0, y: 1 },
+                    { x: 0, y: -1 },
+                ];
+                const dir = directions[Math.floor(Math.random() * directions.length)];
+                const newX = gameState.playerPos.x + dir.x;
+                const newY = gameState.playerPos.y + dir.y;
+
+                if (gameState.grid[newY]?.[newX] === 0) {
+                    gameState.playerPos = { x: newX, y: newY };
+                    addMessage('> Moved!', 'success');
+                }
+            } else if (action === 'attack') {
+                let hit = false;
+                gameState.enemies.forEach(enemy => {
+                    const dist = Math.abs(enemy.x - gameState.playerPos.x) + Math.abs(enemy.y - gameState.playerPos.y);
+                    if (dist <= 1) {
+                        enemy.hp -= 15;
+                        gameState.gold += 10;
+                        addMessage('> HIT! +10 Gold', 'combat');
+                        hit = true;
+                    }
+                });
+                if (!hit) addMessage('> MISS!', 'combat');
+            } else if (action === 'trap') {
+                if (gameState.traps > 0) {
+                    gameState.traps--;
+                    gameState.gold -= 50;
+                    addMessage('> Trap placed! -50 Gold', 'action');
+                } else {
+                    addMessage('> No traps left!', 'combat');
+                }
+            } else if (action === 'defend') {
+                addMessage('> Defense +50% next turn!', 'action');
+            } else if (action === 'pass') {
+                addMessage('> Turn passed.', 'action');
+            }
+
+            gameState.enemies = gameState.enemies.filter(e => e.hp > 0);
+            gameState.turn++;
+            render();
+        }
+
+        function addMessage(text, type = '') {
+            const log = document.getElementById('messageLog');
+            const msg = document.createElement('div');
+            msg.className = `message ${type}`;
+            msg.textContent = text;
+            log.appendChild(msg);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function pauseGame() {
+            showModal('Paused', 'Game paused. Choose an action.', ['Resume', 'Quit']);
+        }
+
+        function showModal(title, text, buttons = ['OK']) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalText').textContent = text;
+            document.getElementById('modalBtn1').textContent = buttons[0] || 'OK';
+            document.getElementById('modalBtn2').style.display = buttons[1] ? 'block' : 'none';
+            if (buttons[1]) document.getElementById('modalBtn2').textContent = buttons[1];
+            document.getElementById('modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+        }
+
+        // Canvas click handler
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor((e.clientX - rect.left) / TILE_SIZE);
+            const y = Math.floor((e.clientY - rect.top) / TILE_SIZE);
+            addMessage(`> Clicked (${x}, ${y})`, 'action');
+        });
+
+        // Initialize and render
+        initGrid();
+        render();
+        addMessage('> Press action buttons to play!', 'action');
+    </script>
+</body>
+</html>

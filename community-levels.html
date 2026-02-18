@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Community Levels - NPC Dungeon</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #1a1a2e;
+            --bg-card: #16213e;
+            --accent-primary: #e94560;
+            --accent-secondary: #f39c12;
+            --text-primary: #eee6e6;
+            --text-secondary: #a8a8b3;
+            --border-color: #2a3a52;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            color: var(--text-primary);
+        }
+
+        .nav {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 20px;
+        }
+
+        .nav-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .header {
+            margin-bottom: 40px;
+        }
+
+        .title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .filters {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .filter-label {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .filter-input {
+            padding: 10px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+
+        .filter-input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .level-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0;
+            overflow: hidden;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .level-card:hover {
+            border-color: var(--accent-primary);
+            background: rgba(22, 33, 62, 0.8);
+        }
+
+        .level-header {
+            background: rgba(233, 69, 96, 0.1);
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .level-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .level-creator {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .level-body {
+            padding: 20px;
+        }
+
+        .level-description {
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .level-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            font-size: 0.9rem;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-secondary);
+        }
+
+        .difficulty-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: rgba(233, 69, 96, 0.2);
+            border-radius: 4px;
+            color: var(--accent-secondary);
+            font-size: 0.85rem;
+            margin-bottom: 12px;
+        }
+
+        .button {
+            width: 100%;
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .button:hover {
+            background: #d63552;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .title {
+                font-size: 1.8rem;
+            }
+
+            .filters {
+                flex-direction: column;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <div class="nav-content">
+            <h1 class="nav-title">🏰 NPC Dungeon</h1>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/dashboard.html">Dashboard</a></li>
+                <li><a href="/game-modes.html">Play</a></li>
+                <li><a href="/level-creator.html">Create</a></li>
+                <li><a href="/profile.html">Profile</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <header class="header">
+            <h1 class="title">Community Levels</h1>
+            <p class="subtitle">Explore and play levels created by other dungeon keepers</p>
+        </header>
+
+        <div class="filters">
+            <div class="filter-group">
+                <label class="filter-label">Search:</label>
+                <input type="text" class="filter-input" placeholder="Find a level...">
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Difficulty:</label>
+                <select class="filter-input">
+                    <option>All</option>
+                    <option>Easy</option>
+                    <option>Medium</option>
+                    <option>Hard</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Sort by:</label>
+                <select class="filter-input">
+                    <option>Most Popular</option>
+                    <option>Newest</option>
+                    <option>Highest Rated</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="level-card">
+                <div class="level-header">
+                    <h3 class="level-title">The Spike Gauntlet</h3>
+                    <p class="level-creator">by ShadowKeeper</p>
+                </div>
+                <div class="level-body">
+                    <div class="difficulty-badge">Difficulty: Hard</div>
+                    <p class="level-description">A challenging level with multiple trap sections and hidden passages. Perfect for experienced players.</p>
+                    <div class="level-meta">
+                        <div class="meta-item">⭐ 4.5/5</div>
+                        <div class="meta-item">👁️ 1,240 plays</div>
+                    </div>
+                    <button class="button">Play Level</button>
+                </div>
+            </div>
+
+            <div class="level-card">
+                <div class="level-header">
+                    <h3 class="level-title">Water Works</h3>
+                    <p class="level-creator">by TrapMaster</p>
+                </div>
+                <div class="level-body">
+                    <div class="difficulty-badge">Difficulty: Medium</div>
+                    <p class="level-description">An innovative puzzle level featuring water mechanics and creative trap combinations.</p>
+                    <div class="level-meta">
+                        <div class="meta-item">⭐ 4.2/5</div>
+                        <div class="meta-item">👁️ 856 plays</div>
+                    </div>
+                    <button class="button">Play Level</button>
+                </div>
+            </div>
+
+            <div class="level-card">
+                <div class="level-header">
+                    <h3 class="level-title">The Golden Vault</h3>
+                    <p class="level-creator">by TreasureHunter</p>
+                </div>
+                <div class="level-body">
+                    <div class="difficulty-badge">Difficulty: Hard</div>
+                    <p class="level-description">Protect your treasure vault from invading heroes. Uses advanced combat mechanics and resource management.</p>
+                    <div class="level-meta">
+                        <div class="meta-item">⭐ 4.7/5</div>
+                        <div class="meta-item">👁️ 2,103 plays</div>
+                    </div>
+                    <button class="button">Play Level</button>
+                </div>
+            </div>
+
+            <div class="level-card">
+                <div class="level-header">
+                    <h3 class="level-title">Beginner's Luck</h3>
+                    <p class="level-creator">by NewbieKeeper</p>
+                </div>
+                <div class="level-body">
+                    <div class="difficulty-badge">Difficulty: Easy</div>
+                    <p class="level-description">A great introductory level for new dungeon keepers. Learn the basics in a safe environment.</p>
+                    <div class="level-meta">
+                        <div class="meta-item">⭐ 4.0/5</div>
+                        <div class="meta-item">👁️ 542 plays</div>
+                    </div>
+                    <button class="button">Play Level</button>
+                </div>
+            </div>
+
+            <div class="level-card">
+                <div class="level-header">
+                    <h3 class="level-title">The Maze of Mirrors</h3>
+                    <p class="level-creator">by PuzzleGhost</p>
+                </div>
+                <div class="level-body">
+                    <div class="difficulty-badge">Difficulty: Hard</div>
+                    <p class="level-description">A complex maze with illusion traps and mysterious chambers. Can you navigate to victory?</p>
+                    <div class="level-meta">
+                        <div class="meta-item">⭐ 4.6/5</div>
+                        <div class="meta-item">👁️ 1,876 plays</div>
+                    </div>
+                    <button class="button">Play Level</button>
+                </div>
+            </div>
+
+            <div class="level-card">
+                <div class="level-header">
+                    <h3 class="level-title">Lava Caverns</h3>
+                    <p class="level-creator">by FireBrand</p>
+                </div>
+                <div class="level-body">
+                    <div class="difficulty-badge">Difficulty: Medium</div>
+                    <p class="level-description">Navigate treacherous lava pits and volcanic chambers. Environmental hazards are your allies!</p>
+                    <div class="level-meta">
+                        <div class="meta-item">⭐ 4.3/5</div>
+                        <div class="meta-item">👁️ 1,203 plays</div>
+                    </div>
+                    <button class="button">Play Level</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
