@@ -419,7 +419,6 @@
         </div>
     </div>
 
-    <script src="game-engine.js"></script>
     <script>
         // Game Configuration
         const TILE_SIZE = 32;
@@ -476,8 +475,16 @@
                     gameState.grid[y][x] = isWall ? 1 : 0;
                 }
             }
-            // Clear player area
-            gameState.grid[8][8] = 0;
+            // Clear small area around player spawn
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    const cy = 8 + dy;
+                    const cx = 8 + dx;
+                    if (cy >= 0 && cy < GRID_HEIGHT && cx >= 0 && cx < GRID_WIDTH) {
+                        gameState.grid[cy][cx] = 0;
+                    }
+                }
+            }
         }
 
         // Draw pixel art tile
@@ -576,12 +583,14 @@
                 });
                 if (!hit) addMessage('> MISS!', 'combat');
             } else if (action === 'trap') {
-                if (gameState.traps > 0) {
+                if (gameState.traps <= 0) {
+                    addMessage('> No traps left!', 'combat');
+                } else if (gameState.gold < 50) {
+                    addMessage('> Not enough gold!', 'combat');
+                } else {
                     gameState.traps--;
                     gameState.gold -= 50;
                     addMessage('> Trap placed! -50 Gold', 'action');
-                } else {
-                    addMessage('> No traps left!', 'combat');
                 }
             } else if (action === 'defend') {
                 addMessage('> Defense +50% next turn!', 'action');

@@ -254,12 +254,12 @@
 
         <div class="filters">
             <div class="filter-group">
-                <label class="filter-label">Search:</label>
-                <input type="text" class="filter-input" placeholder="Find a level...">
+                <label class="filter-label" for="search-levels">Search:</label>
+                <input id="search-levels" type="text" class="filter-input" placeholder="Find a level..." disabled>
             </div>
             <div class="filter-group">
-                <label class="filter-label">Difficulty:</label>
-                <select class="filter-input">
+                <label class="filter-label" for="difficulty-filter">Difficulty:</label>
+                <select id="difficulty-filter" class="filter-input" disabled>
                     <option>All</option>
                     <option>Easy</option>
                     <option>Medium</option>
@@ -267,8 +267,8 @@
                 </select>
             </div>
             <div class="filter-group">
-                <label class="filter-label">Sort by:</label>
-                <select class="filter-input">
+                <label class="filter-label" for="sort-filter">Sort by:</label>
+                <select id="sort-filter" class="filter-input" disabled>
                     <option>Most Popular</option>
                     <option>Newest</option>
                     <option>Highest Rated</option>
@@ -289,7 +289,7 @@
                         <div class="meta-item">⭐ 4.5/5</div>
                         <div class="meta-item">👁️ 1,240 plays</div>
                     </div>
-                    <button class="button">Play Level</button>
+                    <button class="button" type="button" onclick="playLevel('spike-gauntlet')">Play Level</button>
                 </div>
             </div>
 
@@ -305,7 +305,7 @@
                         <div class="meta-item">⭐ 4.2/5</div>
                         <div class="meta-item">👁️ 856 plays</div>
                     </div>
-                    <button class="button">Play Level</button>
+                    <button class="button" type="button" onclick="playLevel('water-works')">Play Level</button>
                 </div>
             </div>
 
@@ -321,7 +321,7 @@
                         <div class="meta-item">⭐ 4.7/5</div>
                         <div class="meta-item">👁️ 2,103 plays</div>
                     </div>
-                    <button class="button">Play Level</button>
+                    <button class="button" type="button" onclick="playLevel('golden-vault')">Play Level</button>
                 </div>
             </div>
 
@@ -337,7 +337,7 @@
                         <div class="meta-item">⭐ 4.0/5</div>
                         <div class="meta-item">👁️ 542 plays</div>
                     </div>
-                    <button class="button">Play Level</button>
+                    <button class="button" type="button" onclick="playLevel('beginners-luck')">Play Level</button>
                 </div>
             </div>
 
@@ -353,7 +353,7 @@
                         <div class="meta-item">⭐ 4.6/5</div>
                         <div class="meta-item">👁️ 1,876 plays</div>
                     </div>
-                    <button class="button">Play Level</button>
+                    <button class="button" type="button" onclick="playLevel('maze-of-mirrors')">Play Level</button>
                 </div>
             </div>
 
@@ -369,10 +369,16 @@
                         <div class="meta-item">⭐ 4.3/5</div>
                         <div class="meta-item">👁️ 1,203 plays</div>
                     </div>
-                    <button class="button">Play Level</button>
+                    <button class="button" type="button" onclick="playLevel('lava-caverns')">Play Level</button>
                 </div>
             </div>
         </div>
+    </div>
+
+    <script>
+        function playLevel(levelId) {
+            alert('Playing community levels from this screen is coming soon. Selected: ' + levelId);
+        }
     </div>
 </body>
 </html>

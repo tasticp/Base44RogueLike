@@ -211,7 +211,7 @@
 <body>
     <nav class="nav">
         <div class="nav-content">
-            <h1 class="nav-title">🏰 NPC Dungeon</h1>
+            <span class="nav-title">🏰 NPC Dungeon</span>
             <ul class="nav-links">
                 <li><a href="/">Home</a></li>
                 <li><a href="/dashboard.html">Dashboard</a></li>
@@ -251,7 +251,7 @@
                         <span class="stat-label">Total Score:</span>
                         <span class="stat-value">2,450</span>
                     </div>
-                    <button class="button button-secondary">Edit Profile</button>
+                    <button class="button button-secondary" type="button" onclick="window.location.href='/profile.html'">Edit Profile</button>
                 </div>
 
                 <div class="card">
@@ -300,7 +300,7 @@
                     <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 0.95rem;">
                         Choose your game mode and NPC role to start playing.
                     </p>
-                    <button class="button" onclick="window.location.href='/game-modes.html'">Select Mode</button>
+                    <a href="/game-modes.html" class="button" style="display: inline-block; text-align: center;">Select Mode</a>
                 </div>
 
                 <div class="card">
@@ -308,7 +308,7 @@
                     <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 0.95rem;">
                         Design your own dungeon level and share with the community.
                     </p>
-                    <button class="button" onclick="window.location.href='/level-creator.html'">Open Editor</button>
+                    <a href="/level-creator.html" class="button" style="display: inline-block; text-align: center;">Open Editor</a>
                 </div>
 
                 <div class="card">
@@ -316,7 +316,7 @@
                     <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 0.95rem;">
                         Explore levels created by other dungeon keepers.
                     </p>
-                    <button class="button" onclick="window.location.href='/community-levels.html'">Browse Levels</button>
+                    <a href="/community-levels.html" class="button" style="display: inline-block; text-align: center;">Browse Levels</a>
                 </div>
             </div>
         </section>

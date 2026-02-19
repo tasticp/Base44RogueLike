@@ -313,11 +313,11 @@
 
         <div class="settings-container">
             <div class="settings-menu">
-                <div class="menu-item active" onclick="showPanel('gameplay')">🎮 Gameplay</div>
-                <div class="menu-item" onclick="showPanel('controls')">⌨️ Controls</div>
-                <div class="menu-item" onclick="showPanel('graphics')">🎨 Graphics</div>
-                <div class="menu-item" onclick="showPanel('audio')">🔊 Audio</div>
-                <div class="menu-item" onclick="showPanel('privacy')">🔒 Privacy</div>
+                <button type="button" class="menu-item active" onclick="showPanel('gameplay', event)">🎮 Gameplay</button>
+                <button type="button" class="menu-item" onclick="showPanel('controls', event)">⌨️ Controls</button>
+                <button type="button" class="menu-item" onclick="showPanel('graphics', event)">🎨 Graphics</button>
+                <button type="button" class="menu-item" onclick="showPanel('audio', event)">🔊 Audio</button>
+                <button type="button" class="menu-item" onclick="showPanel('privacy', event)">🔒 Privacy</button>
             </div>
 
             <!-- Gameplay Panel -->
@@ -530,7 +530,7 @@
     </div>
 
     <script>
-        function showPanel(panelId) {
+        function showPanel(panelId, evt) {
             // Hide all panels
             document.querySelectorAll('.settings-panel').forEach(panel => {
                 panel.classList.remove('active');
@@ -541,7 +541,9 @@
 
             // Show selected panel
             document.getElementById(panelId).classList.add('active');
-            event.target.classList.add('active');
+            if (evt && evt.currentTarget) {
+                evt.currentTarget.classList.add('active');
+            }
         }
 
         function toggleSetting(element) {

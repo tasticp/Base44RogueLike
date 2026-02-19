@@ -265,9 +265,9 @@ Complete challenges to earn achievements:
 - Close other browser tabs
 
 ### Lost Game Progress
-- Game auto-saves during sessions
-- Check your profile for recent games
-- Load from dashboard history
+- Current builds keep all game state only in memory on the server.
+- Progress will be lost when the server restarts or when you refresh/close the page.
+- For persistent progress across restarts, a database or save-system is required and is not yet implemented.
 
 ## 🎓 Learning Path
 

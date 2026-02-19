@@ -223,41 +223,41 @@
         <section class="game-modes-section">
             <h2 class="section-title">Choose Your Game Mode</h2>
             <div class="game-modes">
-                <button class="game-mode" onclick="startGame('easy_hero_dead')">
+                <div class="game-mode" role="group">
                     <div class="mode-header">
                         <span class="mode-icon">🛡️</span>
                         <h3 class="mode-title">Easy Mode</h3>
                     </div>
                     <p class="mode-description">The hero has fallen. Reset traps, heal NPCs, and prepare the dungeon.</p>
-                    <button class="play-button" type="button">Start Easy</button>
-                </button>
+                    <button class="play-button" type="button" onclick="startGame('easy_hero_dead')">Start Easy</button>
+                </div>
 
-                <button class="game-mode" onclick="startGame('hard_hero_alive')">
+                <div class="game-mode" role="group">
                     <div class="mode-header">
                         <span class="mode-icon">💀</span>
                         <h3 class="mode-title">Hard Mode</h3>
                     </div>
                     <p class="mode-description">A hero is exploring. Stay hidden, avoid detection, complete tasks stealthily.</p>
-                    <button class="play-button" type="button">Start Hard</button>
-                </button>
+                    <button class="play-button" type="button" onclick="startGame('hard_hero_alive')">Start Hard</button>
+                </div>
 
-                <button class="game-mode" onclick="startGame('nightmare_mode')">
+                <div class="game-mode" role="group">
                     <div class="mode-header">
                         <span class="mode-icon">👑</span>
                         <h3 class="mode-title">Nightmare Mode</h3>
                     </div>
                     <p class="mode-description">Multiple heroes raiding. Ultimate stealth and efficiency required.</p>
-                    <button class="play-button" type="button">Start Nightmare</button>
-                </button>
+                    <button class="play-button" type="button" onclick="startGame('nightmare_mode')">Start Nightmare</button>
+                </div>
 
-                <button class="game-mode" onclick="startGame('creative_mode')">
+                <div class="game-mode" role="group">
                     <div class="mode-header">
                         <span class="mode-icon">✨</span>
                         <h3 class="mode-title">Creative Mode</h3>
                     </div>
                     <p class="mode-description">Unlimited resources and time. Experiment without pressure.</p>
-                    <button class="play-button" type="button">Start Creative</button>
-                </button>
+                    <button class="play-button" type="button" onclick="startGame('creative_mode')">Start Creative</button>
+                </div>
             </div>
         </section>
 
@@ -338,7 +338,7 @@
                 <article class="feature">
                     <span class="feature-icon">🎓</span>
                     <h3 class="feature-title">Learn More</h3>
-                    <p class="feature-description"><a href="GAME_GUIDE.md" style="color: var(--accent-secondary); text-decoration: none; font-weight: 600;">Read the complete game guide</a> for detailed mechanics and strategies.</p>
+                    <p class="feature-description"><a href="https://github.com/tasticp/Base44RogueLike/blob/main/GAME_GUIDE.md" style="color: var(--accent-secondary); text-decoration: none; font-weight: 600;">Read the complete game guide</a> for detailed mechanics and strategies.</p>
                 </article>
             </div>
         </section>

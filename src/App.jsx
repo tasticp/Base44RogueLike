@@ -1,6 +1,7 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from '@/src/Layout';
+import { User as UserEntity } from '@/Entities/all';
 
 // Lazy load pages for better performance
 const Dashboard = lazy(() => import('@/Pages/Dashboard'));
@@ -17,6 +18,51 @@ const LoadingSpinner = () => (
     <div className="text-white text-lg">Loading...</div>
   </div>
 );
+
+const NotFound = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="text-white text-center p-8">
+      <h1 className="text-2xl font-semibold mb-2">Page not found</h1>
+      <p className="text-gray-400">The page you are looking for does not exist.</p>
+    </div>
+  </div>
+);
+
+const RequireAdmin = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [status, setStatus] = useState('loading');
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadUser = async () => {
+      try {
+        const currentUser = await UserEntity.me();
+        if (isMounted) {
+          setUser(currentUser);
+          setStatus('ready');
+        }
+      } catch (error) {
+        if (isMounted) {
+          setStatus('unauthorized');
+        }
+      }
+    };
+    loadUser();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  if (status === 'loading') {
+    return <LoadingSpinner />;
+  }
+
+  if (!user || user.role !== 'admin') {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return children;
+};
 
 export default function App() {
   return (
@@ -67,9 +113,11 @@ export default function App() {
           <Route
             path="/admin"
             element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <AdminDashboard />
-              </Suspense>
+              <RequireAdmin>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <AdminDashboard />
+                </Suspense>
+              </RequireAdmin>
             }
           />
           <Route
@@ -88,6 +136,7 @@ export default function App() {
               </Suspense>
             }
           />
+          <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
     </Router>

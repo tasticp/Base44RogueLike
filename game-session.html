@@ -339,6 +339,7 @@
     <script>
         let gameStarted = false;
         let elapsedSeconds = 0;
+        let timerInterval = null;
 
         function initGameGrid() {
             const grid = document.getElementById('gameGrid');
@@ -353,13 +354,21 @@
         function startGame() {
             document.getElementById('startModal').style.display = 'none';
             gameStarted = true;
+            const log = document.getElementById('messageLog');
+            if (log) {
+                log.innerHTML = '';
+            }
             addMessage('Game started! Begin setting up your defenses.', 'action');
             startTimer();
         }
 
         function pauseGame() {
             if (gameStarted) {
-                alert('Game paused. (Feature coming soon)');
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                }
+                gameStarted = false;
             }
         }
 
@@ -379,7 +388,10 @@
         }
 
         function startTimer() {
-            setInterval(() => {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+            timerInterval = setInterval(() => {
                 elapsedSeconds++;
                 const mins = Math.floor(elapsedSeconds / 60);
                 const secs = elapsedSeconds % 60;

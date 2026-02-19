@@ -22,6 +22,7 @@ export const Button = React.forwardRef(
     return (
       <button
         ref={ref}
+        type="button"
         className={clsx(baseStyles, variants[variant], sizes[size], className)}
         {...props}
       />

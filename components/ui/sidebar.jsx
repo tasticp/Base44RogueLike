@@ -79,21 +79,34 @@ export const SidebarMenuItem = ({ className, ...props }) => (
   <div className={clsx('', className)} {...props} />
 );
 
+const Slot = React.forwardRef(({ children, className, ...slotProps }, ref) => {
+  if (!React.isValidElement(children)) return children;
+
+  const mergedClassName = clsx(children.props.className, className);
+
+  return React.cloneElement(children, {
+    ...slotProps,
+    className: mergedClassName,
+    ref: ref || children.ref,
+  });
+});
+
+Slot.displayName = 'Slot';
+
 export const SidebarMenuButton = React.forwardRef(
   ({ className, asChild, children, ...props }, ref) => {
-    const Component = asChild ? React.Fragment : 'button';
+    const Component = asChild ? Slot : 'button';
 
     return (
       <Component
-        ref={!asChild ? ref : undefined}
+        ref={ref}
         className={clsx(
           'w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition-colors',
           className
         )}
-        {...(asChild ? {} : props)}
-        {...(asChild ? props : {})}
+        {...props}
       >
-        {asChild ? <>{children}</> : children}
+        {children}
       </Component>
     );
   }

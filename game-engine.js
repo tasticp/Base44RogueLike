@@ -55,7 +55,7 @@ class GameEngine {
             for (let x = 0; x < this.gridWidth; x++) {
                 // Perimeter walls
                 let isWall = x === 0 || x === this.gridWidth - 1 || y === 0 || y === this.gridHeight - 1;
-                // Random interior walls (10% chance)
+                // Random interior walls (~8% chance)
                 if (!isWall && Math.random() < 0.08) isWall = true;
                 this.grid[y][x] = isWall ? 'wall' : 'floor';
             }
@@ -94,8 +94,13 @@ class GameEngine {
             orc: { hp: 50, maxHp: 50, attack: 8, defense: 3, exp: 40, emoji: '👿' },
             skeleton: { hp: 25, maxHp: 25, attack: 6, defense: 1, exp: 30, emoji: '💀' },
         };
-        
-        return { x, y, type, ...enemies[type] };
+
+        const stats = enemies[type];
+        if (!stats) {
+            throw new Error(`Unknown enemy type: ${type}`);
+        }
+
+        return { x, y, type, ...stats };
     }
     
     addMessage(text, type = 'normal') {
@@ -105,35 +110,37 @@ class GameEngine {
     movePlayer(dx, dy) {
         const newX = this.player.x + dx;
         const newY = this.player.y + dy;
-        
+
         // Check bounds and collisions
         if (!this.isWalkable(newX, newY)) {
             this.addMessage('Cannot move there!', 'error');
             return;
         }
-        
+
         // Check for enemy collision
         const enemy = this.enemies.find(e => e.x === newX && e.y === newY);
         if (enemy) {
             this.attackEnemy(enemy);
             return;
         }
-        
-        // Check for item pickup
-        const item = this.items.find(i => i.x === newX && i.y === newY);
-        if (item) {
-            this.pickupItem(item);
-        }
-        
-        // Check for NPC interaction
+
+        // Check for NPC interaction before moving
         const npc = this.npcs.find(n => n.x === newX && n.y === newY);
         if (npc) {
             this.interactNPC(npc);
             return;
         }
-        
+
+        // Move player
         this.player.x = newX;
         this.player.y = newY;
+
+        // Check for item pickup after movement
+        const item = this.items.find(i => i.x === newX && i.y === newY);
+        if (item) {
+            this.pickupItem(item);
+        }
+
         this.addMessage(`Moved to (${newX}, ${newY})`, 'action');
     }
     
@@ -195,12 +202,23 @@ class GameEngine {
     }
     
     placeTrap(x, y, trapType) {
+        // Require a trap item in inventory and sufficient gold
+        const trapItem = this.player.inventory.find(
+            (item) => item.id === 'trap_spike' || item.id === 'trap_fire'
+        );
+
+        if (!trapItem || trapItem.count <= 0) {
+            this.addMessage('No traps available in inventory!', 'error');
+            return;
+        }
+
         if (this.player.gold < 50) {
             this.addMessage('Not enough gold!', 'error');
             return;
         }
-        
+
         this.player.gold -= 50;
+        trapItem.count -= 1;
         this.traps.push({ x, y, type: trapType, active: true, damage: 20 });
         this.addMessage('Trap placed!', 'action');
     }
@@ -220,13 +238,15 @@ class GameEngine {
     }
     
     endTurn() {
+        if (!this.gameRunning) return;
         this.turn++;
-        
+
         // Enemy AI
-        this.enemies.forEach(enemy => {
+        for (const enemy of this.enemies) {
+            if (!this.gameRunning) break;
             this.moveEnemyAI(enemy);
-        });
-        
+        }
+
         this.addMessage(`Turn ${this.turn}`, 'action');
     }
     
@@ -312,23 +332,33 @@ class GameEngine {
     }
     
     getSaveData() {
+        const clone = (value) =>
+            typeof structuredClone === 'function'
+                ? structuredClone(value)
+                : JSON.parse(JSON.stringify(value));
+
         return {
             turn: this.turn,
-            player: { ...this.player },
-            enemies: this.enemies,
-            items: this.items,
-            npcs: this.npcs,
-            messageLog: this.messageLog,
+            player: clone(this.player),
+            enemies: clone(this.enemies),
+            items: clone(this.items),
+            npcs: clone(this.npcs),
+            messageLog: clone(this.messageLog),
         };
     }
-    
+
     loadSaveData(data) {
+        const clone = (value) =>
+            typeof structuredClone === 'function'
+                ? structuredClone(value)
+                : JSON.parse(JSON.stringify(value));
+
         this.turn = data.turn;
-        this.player = { ...data.player };
-        this.enemies = data.enemies;
-        this.items = data.items;
-        this.npcs = data.npcs;
-        this.messageLog = data.messageLog;
+        this.player = clone(data.player);
+        this.enemies = clone(data.enemies);
+        this.items = clone(data.items);
+        this.npcs = clone(data.npcs);
+        this.messageLog = clone(data.messageLog);
     }
 }
 

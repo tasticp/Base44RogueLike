@@ -46,6 +46,7 @@ class EntityClient {
       method: 'DELETE',
     });
     if (!response.ok) throw new Error(`Failed to delete ${this.entityType}`);
+    if (response.status === 204) return null;
     return response.json();
   }
 
