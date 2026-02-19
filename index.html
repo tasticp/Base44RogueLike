@@ -252,8 +252,17 @@
                     status: 'active'
                 })
             })
-            .then(response => response.json())
+            .then(async (response) => {
+                if (!response.ok) {
+                    const text = await response.text().catch(() => '');
+                    throw new Error(`Server error ${response.status}${text ? `: ${text}` : ''}`);
+                }
+                return response.json();
+            })
             .then(session => {
+                if (!session || !session.id) {
+                    throw new Error('Invalid session response from server');
+                }
                 // Redirect to game session page
                 window.location.href = `/Pages/GameSession?id=${session.id}`;
             })

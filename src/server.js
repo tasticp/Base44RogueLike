@@ -15,26 +15,58 @@ const gameData = {
 };
 
 // Native CORS middleware
-function addCORSHeaders(res, origin = '*') {
-  res.setHeader('Access-Control-Allow-Origin', origin);
+function addCORSHeaders(res, origin) {
+  // If a specific origin is provided (e.g. from req.headers.origin), echo it back
+  // and allow credentials. Otherwise, fall back to a wildcard origin without
+  // credentials to remain CORS-spec compliant.
+  if (origin && origin !== '*') {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Vary', 'Origin');
+  } else if (!res.getHeader('Access-Control-Allow-Origin')) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
 }
 
-// Native JSON parser
+const MAX_BODY_SIZE = 1 * 1024 * 1024; // 1 MB
+
+// Native JSON parser with basic body size limit
 function parseJSON(req) {
   return new Promise((resolve, reject) => {
     let body = '';
+    let exceeded = false;
+
     req.on('data', chunk => {
+      if (exceeded) {
+        return;
+      }
+
       body += chunk.toString();
+
+      if (body.length > MAX_BODY_SIZE) {
+        exceeded = true;
+        req.destroy();
+        reject(new Error('Payload too large'));
+      }
     });
+
     req.on('end', () => {
+      if (exceeded) {
+        return;
+      }
+
       try {
         resolve(body ? JSON.parse(body) : {});
       } catch (error) {
         reject(error);
       }
+    });
+
+    req.on('error', (err) => {
+      reject(err);
     });
   });
 }
@@ -44,17 +76,44 @@ function generateUUID() {
   return crypto.randomUUID();
 }
 
-// Native file serving
+// Native file serving with basic containment and extension allowlist
 function serveStaticFile(filePath, res, contentType = 'text/html') {
-  const fullPath = path.join(__dirname, '..', filePath);
-  
+  const rootDir = path.resolve(__dirname, '..');
+  const fullPath = path.resolve(rootDir, filePath);
+
+  // Prevent path traversal outside the allowed root directory
+  if (!fullPath.startsWith(rootDir + path.sep) && fullPath !== rootDir) {
+    res.writeHead(403, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Forbidden' }));
+    return;
+  }
+
+  const allowedExts = new Set([
+    '.html',
+    '.css',
+    '.js',
+    '.json',
+    '.png',
+    '.jpg',
+    '.jpeg',
+    '.svg',
+    '.ico'
+  ]);
+
+  const ext = path.extname(fullPath);
+  if (ext && !allowedExts.has(ext)) {
+    res.writeHead(403, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Forbidden' }));
+    return;
+  }
+
   fs.readFile(fullPath, (err, data) => {
     if (err) {
       res.writeHead(404, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'File not found' }));
       return;
     }
-    
+
     res.writeHead(200, { 'Content-Type': contentType });
     res.end(data);
   });
@@ -163,39 +222,30 @@ async function handlePutEntityById(req, res, pathname) {
   const urlParts = pathname.split('/');
   const entityType = urlParts[3];
   const id = urlParts[4];
-  
+
   try {
     const body = await parseJSON(req);
     const updates = { ...body, updated_at: new Date().toISOString() };
-    
-    let entity;
-    switch(entityType) {
-      case 'GameSession':
-        entity = { ...gameData.sessions[id], ...updates };
-        gameData.sessions[id] = entity;
-        break;
-      case 'GameObject':
-        entity = { ...gameData.objects[id], ...updates };
-        gameData.objects[id] = entity;
-        break;
-      case 'AdminAction':
-        entity = { ...gameData.adminActions[id], ...updates };
-        gameData.adminActions[id] = entity;
-        break;
-      case 'PlayerProfile':
-        entity = { ...gameData.profiles[id], ...updates };
-        gameData.profiles[id] = entity;
-        break;
-    }
-    
-    addCORSHeaders(res);
-    
-    if (!entity) {
+
+    const store = {
+      GameSession: gameData.sessions,
+      GameObject: gameData.objects,
+      AdminAction: gameData.adminActions,
+      PlayerProfile: gameData.profiles
+    }[entityType];
+
+    // If the store or entity does not exist, return 404 instead of upserting
+    if (!store || !store[id]) {
+      addCORSHeaders(res);
       res.writeHead(404, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Entity not found' }));
       return;
     }
-    
+
+    store[id] = { ...store[id], ...updates };
+    const entity = store[id];
+
+    addCORSHeaders(res);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(entity));
   } catch (error) {
@@ -355,12 +405,13 @@ async function handleProgression(req, res, pathname) {
 function routeHandler(req, res) {
   const method = req.method;
   const pathname = new URL(req.url, `http://${req.headers.host}`).pathname;
-  
+
   // Debug logging
   console.log(`${method} ${pathname}`);
-  
-  addCORSHeaders(res);
-  
+
+  // Apply CORS headers once per request, using the Origin header when present
+  addCORSHeaders(res, req.headers.origin);
+
   // Handle OPTIONS for CORS
   if (method === 'OPTIONS') {
     res.writeHead(200);
