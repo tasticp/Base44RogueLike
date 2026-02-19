@@ -1,0 +1,23 @@
+import React from "react";
+
+export default function StaticFrame({ src, preserveQuery = false, title = "Page" }) {
+  const iframeSrc =
+    preserveQuery && typeof window !== "undefined"
+      ? `${src}${window.location.search || ""}`
+      : src;
+
+  return (
+    <iframe
+      title={title}
+      src={iframeSrc}
+      style={{
+        border: 0,
+        width: "100%",
+        height: "100%",
+        minHeight: "100vh",
+        background: "transparent",
+      }}
+    />
+  );
+}
+
