@@ -15,7 +15,15 @@
     "build": "echo 'No build step required - native implementation'",
     "health": "curl -f http://localhost:3000/api/health || exit 1"
   },
-  "dependencies": {},
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.16.0",
+    "framer-motion": "^10.16.0",
+    "lucide-react": "^0.263.0",
+    "date-fns": "^2.30.0",
+    "clsx": "^2.0.0"
+  },
   "devDependencies": {
     "nodemon": "^3.0.1"
   },

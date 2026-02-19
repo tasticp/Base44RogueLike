@@ -1,13 +1,12 @@
-
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
-import { createPageUrl } from "@/utils";
-import { 
-  Home, 
-  Play, 
-  Wrench, 
-  Users, 
-  User, 
+import { Link, useLocation, Outlet } from "react-router-dom";
+import { createPageUrl } from "@/src/utils";
+import {
+  Home,
+  Play,
+  Wrench,
+  Users,
+  User,
   Sword,
   Zap,
   Crown,
@@ -28,7 +27,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { User as UserEntity } from "@/entities/User";
+import { User as UserEntity } from "@/Entities/all";
 
 const navigationItems = [
   {
@@ -66,7 +65,7 @@ const adminItems = [
   }
 ];
 
-export default function Layout({ children, currentPageName }) {
+export default function Layout() {
   const location = useLocation();
   const [user, setUser] = React.useState(null);
 
@@ -311,7 +310,7 @@ export default function Layout({ children, currentPageName }) {
           </header>
 
           <div className="flex-1 overflow-auto">
-            {children}
+            <Outlet />
           </div>
         </main>
       </div>
