@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - NPC Dungeon</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #1a1a2e;
+            --bg-card: #16213e;
+            --accent-primary: #e94560;
+            --accent-secondary: #f39c12;
+            --text-primary: #eee6e6;
+            --text-secondary: #a8a8b3;
+            --border-color: #2a3a52;
+        }
+        
+        html, body {
+            height: 100%;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .nav {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .header {
+            margin-bottom: 40px;
+        }
+
+        .title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .section {
+            margin-bottom: 60px;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 28px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 24px;
+            transition: all 0.2s ease;
+        }
+
+        .card:hover {
+            border-color: var(--accent-primary);
+            background: rgba(22, 33, 62, 0.8);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 16px;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .stat {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+        }
+
+        .stat-value {
+            font-weight: 600;
+        }
+
+        .button {
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+            margin-top: 16px;
+        }
+
+        .button:hover {
+            background: #d63552;
+            transform: translateY(-2px);
+        }
+
+        .button-secondary {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        .button-secondary:hover {
+            background: #252f45;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .info-box {
+            background: rgba(233, 69, 96, 0.1);
+            border-left: 4px solid var(--accent-primary);
+            padding: 16px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                gap: 12px;
+                font-size: 0.85rem;
+            }
+
+            .title {
+                font-size: 1.8rem;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <div class="nav-content">
+            <h1 class="nav-title">🏰 NPC Dungeon</h1>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/dashboard.html">Dashboard</a></li>
+                <li><a href="/game-modes.html">Play</a></li>
+                <li><a href="/level-creator.html">Create</a></li>
+                <li><a href="/profile.html">Profile</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <header class="header">
+            <h1 class="title">Dashboard</h1>
+            <p class="subtitle">Welcome back, Dungeon Keeper! Here's your progress at a glance.</p>
+        </header>
+
+        <div class="info-box">
+            <strong>Quick Tip:</strong> Complete more game sessions and create community levels to unlock achievements and rewards.
+        </div>
+
+        <section class="section">
+            <h2 class="section-title">Player Stats</h2>
+            <div class="grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">👤 Profile</h3>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Name:</span>
+                        <span class="stat-value">Shadow Imp</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Level:</span>
+                        <span class="stat-value">5</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Total Score:</span>
+                        <span class="stat-value">2,450</span>
+                    </div>
+                    <button class="button button-secondary">Edit Profile</button>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">📊 Statistics</h3>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Games Played:</span>
+                        <span class="stat-value">24</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Wins:</span>
+                        <span class="stat-value">18</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Favorite Role:</span>
+                        <span class="stat-value">Trap Setter</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">🏆 Achievements</h3>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Unlocked:</span>
+                        <span class="stat-value">12/20</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Progress:</span>
+                        <span class="stat-value">60%</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Recent:</span>
+                        <span class="stat-value">Trap Master</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">Quick Actions</h2>
+            <div class="grid">
+                <div class="card">
+                    <h3 class="card-title">▶️ Play Game</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 0.95rem;">
+                        Choose your game mode and NPC role to start playing.
+                    </p>
+                    <button class="button" onclick="window.location.href='/game-modes.html'">Select Mode</button>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-title">🛠️ Create Level</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 0.95rem;">
+                        Design your own dungeon level and share with the community.
+                    </p>
+                    <button class="button" onclick="window.location.href='/level-creator.html'">Open Editor</button>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-title">🌍 Community</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 0.95rem;">
+                        Explore levels created by other dungeon keepers.
+                    </p>
+                    <button class="button" onclick="window.location.href='/community-levels.html'">Browse Levels</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">Recent Sessions</h2>
+            <div class="grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Easy Mode - Victory</h3>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Score:</span>
+                        <span class="stat-value">1,200</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Duration:</span>
+                        <span class="stat-value">45m 32s</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Date:</span>
+                        <span class="stat-value">2 hours ago</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Hard Mode - Victory</h3>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Score:</span>
+                        <span class="stat-value">2,100</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Duration:</span>
+                        <span class="stat-value">1h 23m</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Date:</span>
+                        <span class="stat-value">Yesterday</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Nightmare Mode - Defeat</h3>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Score:</span>
+                        <span class="stat-value">850</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Duration:</span>
+                        <span class="stat-value">28m 15s</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Date:</span>
+                        <span class="stat-value">3 days ago</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+</html>

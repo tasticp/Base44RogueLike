@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Session - NPC Dungeon</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #1a1a2e;
+            --bg-card: #16213e;
+            --accent-primary: #e94560;
+            --accent-secondary: #f39c12;
+            --text-primary: #eee6e6;
+            --text-secondary: #a8a8b3;
+            --border-color: #2a3a52;
+        }
+        
+        html, body {
+            height: 100%;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+        }
+
+        .game-container {
+            display: flex;
+            height: 100vh;
+            gap: 1px;
+            background: var(--bg-secondary);
+        }
+
+        .game-viewport {
+            flex: 1;
+            background: var(--bg-primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(20, 1fr);
+            grid-template-rows: repeat(20, 1fr);
+            width: 100%;
+            height: 100%;
+            gap: 1px;
+            padding: 10px;
+            background: var(--bg-primary);
+        }
+
+        .grid-tile {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 2px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .grid-tile:hover {
+            background: rgba(233, 69, 96, 0.1);
+        }
+
+        .grid-tile.wall {
+            background: #0a0a0f;
+            border-color: #1a1a2e;
+        }
+
+        .entity {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .hud {
+            width: 320px;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .hud-section {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .hud-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--accent-secondary);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+        }
+
+        .stat-value {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--bg-card);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent-primary);
+            transition: width 0.3s;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .btn-small {
+            flex: 1;
+            padding: 8px;
+            background: var(--accent-primary);
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-small:hover {
+            background: #d63552;
+        }
+
+        .message-log {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            background: var(--bg-card);
+        }
+
+        .message {
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .message.action {
+            color: var(--accent-secondary);
+        }
+
+        .message.combat {
+            color: var(--accent-primary);
+        }
+
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 24px;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            margin-bottom: 12px;
+        }
+
+        .modal-description {
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .btn-modal {
+            padding: 12px 24px;
+            background: var(--accent-primary);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-modal:hover {
+            background: #d63552;
+        }
+
+        @media (max-width: 1024px) {
+            .hud {
+                width: 250px;
+            }
+
+            .hud-section {
+                padding: 12px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .game-container {
+                flex-direction: column;
+            }
+
+            .hud {
+                width: 100%;
+                height: 200px;
+                border-left: none;
+                border-top: 1px solid var(--border-color);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-viewport">
+            <div class="game-grid" id="gameGrid"></div>
+        </div>
+
+        <div class="hud">
+            <div class="hud-section">
+                <div class="hud-title">Session Info</div>
+                <div class="stat">
+                    <span class="stat-label">Mode:</span>
+                    <span class="stat-value">Easy</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Role:</span>
+                    <span class="stat-value">Trap Setter</span>
+                </div>
+            </div>
+
+            <div class="hud-section">
+                <div class="hud-title">Score & Time</div>
+                <div class="stat">
+                    <span class="stat-label">Score:</span>
+                    <span class="stat-value" id="score">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Time:</span>
+                    <span class="stat-value" id="time">0:00</span>
+                </div>
+            </div>
+
+            <div class="hud-section">
+                <div class="hud-title">Resources</div>
+                <div class="stat">
+                    <span class="stat-label">Gold:</span>
+                    <span class="stat-value" id="gold">100</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Traps:</span>
+                    <span class="stat-value" id="traps">5</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">NPCs:</span>
+                    <span class="stat-value" id="npcs">3</span>
+                </div>
+            </div>
+
+            <div class="hud-section">
+                <div class="hud-title">Messages</div>
+                <div class="message-log" id="messageLog">
+                    <div class="message action">Game started!</div>
+                    <div class="message">Place traps and prepare your dungeon...</div>
+                </div>
+            </div>
+
+            <div class="hud-section">
+                <div class="hud-title">Controls</div>
+                <div class="control-buttons">
+                    <button class="btn-small" onclick="pauseGame()">Pause</button>
+                    <button class="btn-small" onclick="quitGame()">Quit</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="startModal">
+        <div class="modal-content">
+            <div class="modal-title">🏰 Ready to Play?</div>
+            <p class="modal-description">Your dungeon is prepared. The heroes are approaching!</p>
+            <div class="modal-buttons">
+                <button class="btn-modal" onclick="startGame()">Start Game</button>
+                <button class="btn-modal" onclick="window.location.href='/game-modes.html'" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">Back</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let gameStarted = false;
+        let elapsedSeconds = 0;
+
+        function initGameGrid() {
+            const grid = document.getElementById('gameGrid');
+            for (let i = 0; i < 400; i++) {
+                const tile = document.createElement('div');
+                tile.className = 'grid-tile';
+                tile.id = `tile-${i}`;
+                grid.appendChild(tile);
+            }
+        }
+
+        function startGame() {
+            document.getElementById('startModal').style.display = 'none';
+            gameStarted = true;
+            addMessage('Game started! Begin setting up your defenses.', 'action');
+            startTimer();
+        }
+
+        function pauseGame() {
+            if (gameStarted) {
+                alert('Game paused. (Feature coming soon)');
+            }
+        }
+
+        function quitGame() {
+            if (confirm('Are you sure you want to quit this session?')) {
+                window.location.href = '/dashboard.html';
+            }
+        }
+
+        function addMessage(text, type = '') {
+            const log = document.getElementById('messageLog');
+            const msg = document.createElement('div');
+            msg.className = `message ${type}`;
+            msg.textContent = text;
+            log.appendChild(msg);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function startTimer() {
+            setInterval(() => {
+                elapsedSeconds++;
+                const mins = Math.floor(elapsedSeconds / 60);
+                const secs = elapsedSeconds % 60;
+                document.getElementById('time').textContent = 
+                    `${mins}:${secs.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        function updateScore(points) {
+            const scoreEl = document.getElementById('score');
+            scoreEl.textContent = parseInt(scoreEl.textContent) + points;
+        }
+
+        initGameGrid();
+    </script>
+</body>
+</html>

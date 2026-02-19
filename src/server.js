@@ -471,26 +471,30 @@ function routeHandler(req, res) {
     return;
   }
   
-  // Static files (only for non-API routes and specific extensions)
-  if (method === 'GET' && !pathname.startsWith('/api/') && pathname.startsWith('/')) {
-    const filePath = pathname === '/' ? 'index.html' : pathname.substring(1);
+  // Static files (non-API routes)
+  if (method === 'GET' && !pathname.startsWith('/api/')) {
+    let filePath = pathname === '/' ? 'index.html' : pathname.substring(1);
     const ext = path.extname(filePath);
     let contentType = 'text/html';
-    
-    // Only serve files with known extensions or main page
-    if (ext !== '' || pathname === '/') {
-      switch(ext) {
-        case '.css': contentType = 'text/css'; break;
-        case '.js': contentType = 'application/javascript'; break;
-        case '.json': contentType = 'application/json'; break;
-        case '.png': contentType = 'image/png'; break;
-        case '.jpg': contentType = 'image/jpeg'; break;
-        case '.svg': contentType = 'image/svg+xml'; break;
-      }
-      
-      serveStaticFile(filePath, res, contentType);
-      return;
+
+    // If no extension, try .html file
+    if (ext === '') {
+      filePath = filePath + '.html';
     }
+
+    // Determine content type
+    switch(path.extname(filePath)) {
+      case '.css': contentType = 'text/css'; break;
+      case '.js': contentType = 'application/javascript'; break;
+      case '.json': contentType = 'application/json'; break;
+      case '.png': contentType = 'image/png'; break;
+      case '.jpg': contentType = 'image/jpeg'; break;
+      case '.svg': contentType = 'image/svg+xml'; break;
+      case '.html': contentType = 'text/html'; break;
+    }
+
+    serveStaticFile(filePath, res, contentType);
+    return;
   }
   
   // 404 for unknown routes

@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - NPC Dungeon</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #1a1a2e;
+            --bg-card: #16213e;
+            --accent-primary: #e94560;
+            --accent-secondary: #f39c12;
+            --text-primary: #eee6e6;
+            --text-secondary: #a8a8b3;
+            --border-color: #2a3a52;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            color: var(--text-primary);
+        }
+
+        .nav {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 20px;
+        }
+
+        .nav-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .header {
+            margin-bottom: 40px;
+        }
+
+        .title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .profile-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 40px;
+            display: flex;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .avatar {
+            width: 120px;
+            height: 120px;
+            background: var(--accent-primary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            flex-shrink: 0;
+        }
+
+        .profile-info {
+            flex: 1;
+        }
+
+        .profile-name {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .profile-title {
+            color: var(--accent-secondary);
+            font-size: 1rem;
+            margin-bottom: 20px;
+        }
+
+        .stat-row {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 16px;
+        }
+
+        .stat {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .card-title {
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .card-text {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 12px;
+        }
+
+        .achievement-badge {
+            width: 60px;
+            height: 60px;
+            background: rgba(243, 156, 18, 0.2);
+            border: 1px solid var(--accent-secondary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+
+        .button {
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .button:hover {
+            background: #d63552;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .button-secondary {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        .button-secondary:hover {
+            background: #252f45;
+        }
+
+        @media (max-width: 768px) {
+            .profile-card {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+
+            .stat-row {
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <div class="nav-content">
+            <h1 class="nav-title">🏰 NPC Dungeon</h1>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/dashboard.html">Dashboard</a></li>
+                <li><a href="/game-modes.html">Play</a></li>
+                <li><a href="/level-creator.html">Create</a></li>
+                <li><a href="/profile.html">Profile</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <header class="header">
+            <h1 class="title">Your Profile</h1>
+        </header>
+
+        <div class="profile-card">
+            <div class="avatar">👤</div>
+            <div class="profile-info">
+                <h2 class="profile-name">Shadow Imp</h2>
+                <p class="profile-title">Dungeon Keeper</p>
+                <div class="stat-row">
+                    <div class="stat">
+                        <span class="stat-label">Level</span>
+                        <span class="stat-value">5</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Total Score</span>
+                        <span class="stat-value">2,450</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Games Played</span>
+                        <span class="stat-value">24</span>
+                    </div>
+                </div>
+                <button class="button">Edit Profile</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Achievements (12/20)</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 20px;">
+                <div style="text-align: center;">
+                    <div class="achievement-badge">🎯</div>
+                    <p style="font-size: 0.85rem; margin-top: 8px;">Trap Master</p>
+                </div>
+                <div style="text-align: center;">
+                    <div class="achievement-badge">💪</div>
+                    <p style="font-size: 0.85rem; margin-top: 8px;">Boss Slayer</p>
+                </div>
+                <div style="text-align: center;">
+                    <div class="achievement-badge">💰</div>
+                    <p style="font-size: 0.85rem; margin-top: 8px;">Rich Keeper</p>
+                </div>
+                <div style="text-align: center;">
+                    <div class="achievement-badge">🏆</div>
+                    <p style="font-size: 0.85rem; margin-top: 8px;">Champion</p>
+                </div>
+                <div style="text-align: center;">
+                    <div class="achievement-badge" style="opacity: 0.5;">?</div>
+                    <p style="font-size: 0.85rem; margin-top: 8px; color: var(--text-secondary);">Locked</p>
+                </div>
+                <div style="text-align: center;">
+                    <div class="achievement-badge" style="opacity: 0.5;">?</div>
+                    <p style="font-size: 0.85rem; margin-top: 8px; color: var(--text-secondary);">Locked</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Your Levels</h2>
+            <div class="grid">
+                <div class="card">
+                    <h3 class="card-title">🏰 The Spike Gauntlet</h3>
+                    <p class="card-text">A challenging level with multiple trap sections.</p>
+                    <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px;">
+                        ⭐ 4.5/5 • 128 plays
+                    </div>
+                    <button class="button-secondary" style="width: 100%; padding: 8px;">Play Level</button>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-title">🌊 Water Works</h3>
+                    <p class="card-text">A puzzle level featuring water mechanics.</p>
+                    <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px;">
+                        ⭐ 3.8/5 • 64 plays
+                    </div>
+                    <button class="button-secondary" style="width: 100%; padding: 8px;">Play Level</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Statistics</h2>
+            <div class="grid">
+                <div class="card">
+                    <div class="card-title">Games Won</div>
+                    <div style="font-size: 2rem; font-weight: 700; color: var(--accent-primary); margin-top: 12px;">18/24</div>
+                    <div style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 8px;">75% Win Rate</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Favorite Role</div>
+                    <div style="font-size: 1.5rem; margin-top: 12px;">🎯 Trap Setter</div>
+                    <div style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 8px;">48 wins with this role</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Playtime</div>
+                    <div style="font-size: 2rem; font-weight: 700; color: var(--accent-secondary); margin-top: 12px;">42h</div>
+                    <div style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 8px;">Across 24 sessions</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
