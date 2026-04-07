@@ -15,6 +15,7 @@
     "test:coverage": "node tests/coverage.js",
     "lint": "echo 'Linting with native Node.js tools'",
     "format": "echo 'Formatting with native Node.js tools'",
+    "type-check": "echo 'No type-check configured'",
     "health": "curl -f http://localhost:3000/api/health || exit 1"
   },
   "dependencies": {
